@@ -81,9 +81,9 @@ function serve(req, res) {
   });
 }
 
-// 큰 메시지(1KB 넘는 순위표 등)만 압축: 무료 서버의 대역폭을 아끼고 CPU는 덜 쓴다
+// 256바이트 넘는 메시지는 압축: 무료 서버 네트워크 한도(월 5GB)를 아낀다
 const io = new Server(server, { maxHttpBufferSize: 2e6, pingInterval: 25000, pingTimeout: 20000, serveClient: true,
-  perMessageDeflate: { threshold: 1024, zlibDeflateOptions: { level: 3 }, serverNoContextTakeover: true, clientNoContextTakeover: true },
+  perMessageDeflate: { threshold: 256, zlibDeflateOptions: { level: 3 }, serverNoContextTakeover: true, clientNoContextTakeover: true },
   cors: { origin: (origin, cb) => cb(null, !origin || ALLOWED.length === 0 || ALLOWED.includes(origin)) } });
 const STATS = { sent: 0, recv: 0, wire: 0 };
 if (process.env.LOADTEST === '1') { let closed = 0; const live = new Set();

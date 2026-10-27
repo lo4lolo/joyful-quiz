@@ -70,7 +70,15 @@ export function buildRecord({ title, unit, mode, modeName, settings, questions, 
   for (const a of (Array.isArray(log) ? log : []).slice(0, LIMIT.answers)) {
     if (!a || a.pid == null || a.qid == null) continue;
     if (!pmap.has(String(a.pid))) pmap.set(String(a.pid), { pid: cleanId(a.pid), name: clip(a.name, LIMIT.name) || '이름 없음' });
-    answers.push({ pid: cleanId(a.pid), qid: cleanId(a.qid), ok: !!a.ok, given: clip(a.given, LIMIT.given), ms: Math.max(0, Math.round(num(a.ms))), t: num(a.t) });
+    const o = { pid: cleanId(a.pid), qid: cleanId(a.qid), ok: !!a.ok, given: clip(a.given, LIMIT.given), ms: Math.max(0, Math.round(num(a.ms))), t: num(a.t) };
+    // 학습 행동: 몇 번째 만남(try) · 순서(seq) · 직전 연속 정답(streak) · 건너뜀(skip) · 문제 모양(kind) · 기기(dev)
+    if (Number.isInteger(a.try) && a.try > 0) o.try = Math.min(a.try, 99);
+    if (Number.isInteger(a.seq) && a.seq > 0) o.seq = Math.min(a.seq, 9999);
+    if (Number.isInteger(a.streak) && a.streak >= 0) o.streak = Math.min(a.streak, 999);
+    if (a.skip) o.skip = true;
+    if (['mc', 'ox', 'short'].includes(a.kind)) o.kind = a.kind;
+    if (a.dev === 't' || a.dev === 'p') o.dev = a.dev;
+    answers.push(o);
   }
   const rank = (Array.isArray(ranking) ? ranking : []).slice(0, LIMIT.ranking).filter(r => r && r.pid != null).map(r => {
     if (!pmap.has(String(r.pid))) pmap.set(String(r.pid), { pid: cleanId(r.pid), name: clip(r.name, LIMIT.name) || '이름 없음' });

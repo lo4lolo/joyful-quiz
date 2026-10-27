@@ -16,8 +16,8 @@ const N = n => Math.max(0, Math.round(n || 0)).toLocaleString();
 function bossHTML(b) {
   return `<div class="rd-boss enter b-${esc(b.id)}" style="--bc:${esc(b.color)}"><div class="rd-bob">
     <div class="rd-blob"><span>${esc(b.emoji)}</span></div>
-    <img class="rd-img" src="assets/boss/${esc(b.id)}.png" alt="${esc(b.name)}" draggable="false">
-    <img class="rd-img rd-hurt" src="assets/boss/${esc(b.id)}_hurt.png" alt="" draggable="false"></div><div class="rd-shadow"></div></div>`;
+    <img class="rd-img" src="assets/boss/${esc(b.id)}.webp" alt="${esc(b.name)}" draggable="false">
+    <img class="rd-img rd-hurt" src="assets/boss/${esc(b.id)}_hurt.webp" alt="" draggable="false"></div><div class="rd-shadow"></div></div>`;
 }
 function wireBoss(wrap, b) {
   const boss = $('.rd-boss', wrap), [img, hurt] = $$('.rd-img', wrap);

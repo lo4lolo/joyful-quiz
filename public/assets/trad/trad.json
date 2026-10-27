@@ -4,98 +4,98 @@
    "id": "cheongryong",
    "name": "청룡",
    "color": "#3D8BFF",
-   "file": "team_cheongryong.png"
+   "file": "team_cheongryong.webp"
   },
   {
    "id": "baekho",
    "name": "백호",
    "color": "#8FA3C4",
-   "file": "team_baekho.png"
+   "file": "team_baekho.webp"
   },
   {
    "id": "jujak",
    "name": "주작",
    "color": "#FF6F61",
-   "file": "team_jujak.png"
+   "file": "team_jujak.webp"
   },
   {
    "id": "hyeonmu",
    "name": "현무",
    "color": "#3A4673",
-   "file": "team_hyeonmu.png"
+   "file": "team_hyeonmu.webp"
   },
   {
    "id": "bonghwang",
    "name": "봉황",
    "color": "#FFC83D",
-   "file": "team_bonghwang.png"
+   "file": "team_bonghwang.webp"
   },
   {
    "id": "haechi",
    "name": "해치",
    "color": "#2ED3A0",
-   "file": "team_haechi.png"
+   "file": "team_haechi.webp"
   }
  ],
  "mal": [
   {
    "id": "blue",
    "color": "#3D8BFF",
-   "file": "mal_blue.png"
+   "file": "mal_blue.webp"
   },
   {
    "id": "red",
    "color": "#FF6F61",
-   "file": "mal_red.png"
+   "file": "mal_red.webp"
   },
   {
    "id": "yellow",
    "color": "#FFC83D",
-   "file": "mal_yellow.png"
+   "file": "mal_yellow.webp"
   },
   {
    "id": "green",
    "color": "#2CCB7F",
-   "file": "mal_green.png"
+   "file": "mal_green.webp"
   },
   {
    "id": "white",
    "color": "#FFFFFF",
-   "file": "mal_white.png"
+   "file": "mal_white.webp"
   },
   {
    "id": "black",
    "color": "#3A4160",
-   "file": "mal_black.png"
+   "file": "mal_black.webp"
   }
  ],
  "files": [
-  "team_cheongryong.png",
-  "team_baekho.png",
-  "team_jujak.png",
-  "team_hyeonmu.png",
-  "team_bonghwang.png",
-  "team_haechi.png",
-  "sulae_back.png",
-  "sulae_look.png",
-  "mugunghwa.png",
-  "finish_rope.png",
-  "rope.png",
-  "rope_center.png",
-  "tug_left.png",
-  "tug_right.png",
-  "yut_front.png",
-  "yut_back.png",
-  "yut_backdo.png",
-  "yut_board.png",
-  "mal_blue.png",
-  "mal_red.png",
-  "mal_yellow.png",
-  "mal_green.png",
-  "mal_white.png",
-  "mal_black.png",
-  "bg_madang.jpg",
-  "hanji.jpg",
+  "team_cheongryong.webp",
+  "team_baekho.webp",
+  "team_jujak.webp",
+  "team_hyeonmu.webp",
+  "team_bonghwang.webp",
+  "team_haechi.webp",
+  "sulae_back.webp",
+  "sulae_look.webp",
+  "mugunghwa.webp",
+  "finish_rope.webp",
+  "rope.webp",
+  "rope_center.webp",
+  "tug_left.webp",
+  "tug_right.webp",
+  "yut_front.webp",
+  "yut_back.webp",
+  "yut_backdo.webp",
+  "yut_board.webp",
+  "mal_blue.webp",
+  "mal_red.webp",
+  "mal_yellow.webp",
+  "mal_green.webp",
+  "mal_white.webp",
+  "mal_black.webp",
+  "bg_madang.webp",
+  "hanji.webp",
   "trad.json"
  ],
  "modes": [
@@ -104,7 +104,7 @@
   "yut"
  ],
  "board": {
-  "file": "yut_board.png",
+  "file": "yut_board.webp",
   "size": 1024,
   "note": "정거장 29개. x, y 는 그림 폭·높이 대비 0~1 (왼쪽 위 기준). 0 = 오른쪽 아래 모서리(출발), 반시계로 0..19 바깥 길; 20,21 = 5(오른쪽 위)->가운데, 22 = 가운데, 23,24 = 가운데->15(왼쪽 아래); 25,26 = 10(왼쪽 위)->가운데, 27,28 = 가운데->0(출발). big = 모서리·가운데(큰 돌).",
   "stations": [
@@ -285,18 +285,18 @@
   ]
  },
  "sulae": {
-  "back": "sulae_back.png",
-  "look": "sulae_look.png",
+  "back": "sulae_back.webp",
+  "look": "sulae_look.webp",
   "note": "두 장은 같은 카메라라 바꿔 끼워도 위치·크기가 같음"
  },
  "yut": {
-  "front": "yut_front.png",
-  "back": "yut_back.png",
-  "backdo": "yut_backdo.png",
+  "front": "yut_front.webp",
+  "back": "yut_back.webp",
+  "backdo": "yut_backdo.webp",
   "note": "front = 평평한 면(X 3개), back = 둥근 등, backdo = 빨간 X 하나인 백도 윷. 세 장 같은 카메라"
  },
  "rope": {
-  "file": "rope.png",
+  "file": "rope.webp",
   "tile": true,
   "note": "가로로 이어 붙일 수 있음 (1600px 안에 꼬임 10번)"
  }

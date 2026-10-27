@@ -186,6 +186,7 @@ function reveal(room, api) {
       else if (f.kind === 'ghost' && !isA) { role = 'ghost'; outcome = f.winner === p ? 'ghostWin' : 'ghostLose'; }
       else { role = f.kind === 'ghost' ? 'vsGhost' : 'duel'; outcome = f.winner === p ? 'win' : f.double ? 'double' : 'lose'; }
     }
+    if (role === 'duel' || role === 'vsGhost') api.event('duel', p.pid, { outcome, ok: !!r.ok, ms: r.ms | 0, round: m.idx + 1 });
     const res = { index: m.idx, total: m.order.length, role, outcome, ok: r.ok, answered: r.answered, ms: r.ms, opp,
       heartLost: losers.has(p), hearts: s.hearts, max: room.settings.hearts, alive: s.alive, out: outSet.has(p), saved: m.allOut && losers.has(p),
       gained: gain[p.pid] || 0, kos: kos[p.pid] || 0, wins: s.wins, score: p.score, rank: rankOf[p.pid], players: room.players.size,

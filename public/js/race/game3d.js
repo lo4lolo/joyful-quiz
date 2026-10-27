@@ -779,7 +779,7 @@ class RaceGame {
     }
   }
   updateRemotes(now, dt) {
-    const rt = now - 130;
+    const rt = now - 210; // 서버 위치는 약 7Hz → 1.5칸 뒤를 그려 부드럽게
     const camX = this.camera.position.x, camZ = this.camera.position.z;
     const list = [];
     for (const r of this.remotes.values()) {

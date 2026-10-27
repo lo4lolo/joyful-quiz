@@ -12,7 +12,7 @@
 /* 줄: 그림이 없으면 CSS 꼰 줄 */
 .tg-rope { position: absolute; left: -40%; right: -40%; border: 3px solid var(--ink); border-radius: 999px; box-shadow: 0 4px 0 rgba(27,42,74,.25);
   background: repeating-linear-gradient(118deg, var(--rope) 0 9px, var(--rope-d) 9px 12px, #E0B57A 12px 20px, var(--rope-d) 20px 23px); }
-.tg-field.has-rope .tg-rope { border: 0; border-radius: 0; box-shadow: none; background: url(../assets/trad/rope.png) repeat-x center / auto 100%; }
+.tg-field.has-rope .tg-rope { border: 0; border-radius: 0; box-shadow: none; background: url(../assets/trad/rope.webp) repeat-x center / auto 100%; }
 .tg-field.jolt .tg-rope { animation: tg-jolt .45s; }
 @keyframes tg-jolt { 15% { transform: translateY(-5px) scaleY(1.15); } 40% { transform: translateY(4px); } 65% { transform: translateY(-2px); } }
 /* 가운데 리본 (나비 매듭 그림, 없으면 CSS 매듭) */
@@ -201,7 +201,7 @@
 .tt-time { font-size: clamp(24px, 2.2vw, 38px); padding: 4px 18px 2px; }
 .tt-scene { position: relative; overflow: hidden; border: 3px solid var(--ink); border-radius: 24px; box-shadow: var(--hard);
   background: linear-gradient(#BFE3FF, #E8F5FF 56%); }
-.tt-scene.has-bg { background: url(../assets/trad/bg_madang.jpg) center 30% / cover; }
+.tt-scene.has-bg { background: url(../assets/trad/bg_madang.webp) center 30% / cover; }
 .tt-scene.has-bg .tt-sky { display: none; }
 .tt-scene.has-bg .tg-field.big .tg-ground { background: linear-gradient(rgba(235,211,162,0), rgba(235,211,162,.35)); border-top: 0; }
 .tt-scene.has-bg .tg-line { width: 10px; margin-left: -5px; border-color: var(--ink); opacity: .85; }
@@ -230,7 +230,7 @@
 .tt-vs { align-self: center; font-family: var(--display); font-size: clamp(30px, 2.6vw, 48px); -webkit-text-stroke: 2px var(--ink); color: var(--lemon); }
 .tt-card { flex: 1; min-width: 0; margin: 0; padding: 10px 12px 10px; border-top: 10px solid var(--tc); display: grid; gap: 6px; transition: box-shadow .2s, transform .2s; }
 .tt-card:nth-child(odd) { transform: rotate(-.6deg); } .tt-card:nth-child(even) { transform: rotate(.6deg); }
-.tg-t.has-hanji .tt-card { background: #fff url(../assets/trad/hanji.jpg) center / cover; }
+.tg-t.has-hanji .tt-card { background: #fff url(../assets/trad/hanji.webp) center / cover; }
 .tt-chead { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .tt-chead > div { min-width: 0; flex: 1; }
 .tt-chead b { font-family: var(--display); font-weight: 400; font-size: clamp(22px, 1.7vw, 32px); display: block; line-height: 1.1; }

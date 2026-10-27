@@ -32,7 +32,7 @@ const ICON = {
 };
 // 그림(assets/icons)이 아직 없거나 못 불러오면 이모지로 (CSP: 인라인 onerror 대신 addEventListener)
 const ic = (k, cls = '') => { const [f, em] = ICON[k] || [null, '❔'];
-  return `<span class="sh-ic ${cls} ${f ? '' : 'noimg'}">${f ? `<img src="assets/icons/${f}.png" alt="" draggable="false">` : ''}<em>${em}</em></span>`; };
+  return `<span class="sh-ic ${cls} ${f ? '' : 'noimg'}">${f ? `<img src="assets/icons/${f}.webp" alt="" draggable="false">` : ''}<em>${em}</em></span>`; };
 function fixImgs(root) {
   for (const img of $$('.sh-ic img, .sh-art img', root)) {
     const bad = () => img.parentElement?.classList.add('noimg');
@@ -348,7 +348,7 @@ export function mountTeacher(el, ctx) {
   let list = s0.list || [], teamNow = s0.teamsNow || [];
   el.innerHTML = `<div class="sh-t">
     <div class="st-main sticker">
-      <div class="st-head"><span class="sh-art"><img src="assets/modes/shop.png" alt="" draggable="false"><em>💸</em></span><h1>퀴즈 부자</h1>
+      <div class="st-head"><span class="sh-art"><img src="assets/modes/shop.webp" alt="" draggable="false"><em>💸</em></span><h1>퀴즈 부자</h1>
         <span class="grow"></span><div class="st-time">${ic('time')}<b id="st-time">-</b></div></div>
       <div id="st-top"></div>
       <div class="st-goal" id="st-goal" hidden></div>

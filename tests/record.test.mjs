@@ -146,7 +146,7 @@ test('anonymize', () => {
 });
 test('analysisSheets: 시트 이름과 머리줄', () => {
   const sh = analysisSheets([rec1()]);
-  assert.deepEqual(sh.map(s => s.name), ['요약', '문항분석', '학생분석', '학생x문항', '응답원자료']);
+  assert.deepEqual(sh.map(s => s.name), ['요약', '문항분석', '학생분석', '학생x문항', '학습행동', '응답원자료']);
   assert.deepEqual(sh[1].rows[0].slice(0, 4), ['번호', '문항', '정답', '응답 수']);
   assert.equal(sh[3].rows.length, 2 + 4);
   assert.deepEqual(sh[3].rows[2], ['1 김하늘', 'O', 'O', 'O', 100]);
@@ -159,8 +159,8 @@ let XLSXlib = null; try { XLSXlib = require('xlsx'); } catch {}
 test('recordToWorkbook (SheetJS 있으면)', { skip: !XLSXlib && 'node_modules/xlsx 없음' }, () => {
   globalThis.XLSX = XLSXlib;
   const wb = recordToWorkbook(rec1());
-  assert.deepEqual(wb.SheetNames, ['요약', '문항분석', '학생분석', '학생x문항', '응답원자료', '_기록원본']);
-  assert.equal(wb.Workbook.Sheets[5].Hidden, 1);
+  assert.deepEqual(wb.SheetNames, ['요약', '문항분석', '학생분석', '학생x문항', '학습행동', '응답원자료', '_기록원본']);
+  assert.equal(wb.Workbook.Sheets[6].Hidden, 1);
   // 엑셀 → 다시 기록 (숨김 시트)
   const bytes = globalThis.XLSX.write(recordsToWorkbook([rec1(), rec2()]), { bookType: 'xlsx', type: 'array' });
   const wb2 = globalThis.XLSX.read(bytes, { type: 'array' });
@@ -277,4 +277,100 @@ test('샘플 3 (줄다리기): 독주 1명·기여 0명 1명', () => {
   assert.equal(c.sessions[0].teams.length, 6);
   assert.equal(c.flagged.dom, 1); assert.equal(c.flagged.zero, 1);
   assert.ok(c.alerts.total >= 4 && c.alerts.total <= 12, '차시당 알림 12건 이하');
+});
+
+// ---------- 게임 속 학습 행동 ----------
+import { behaviorAnalysis, behaviorInsights, behaviorSheetRows, quadOf, questionMedians, BEHAV } from '../public/js/stats.js';
+function behavRec() {
+  // 학생 a: 빠르게 틀림 많음 / 학생 b: 느리게, 처음 틀린 문제를 다시 만나 맞힘
+  const players = [{ pid: 'a', name: '1 가' }, { pid: 'b', name: '2 나' }];
+  const A = (pid, qid, ok, ms, k) => ({ pid, name: pid, qid, ok, given: ok ? Q[qid].answers[0] : (Q[qid].wrong[0] || 'X'), ms, t: T + k * 1000 });
+  const log = [
+    A('a', 0, false, 1000, 1), A('a', 1, false, 1000, 2), A('a', 2, false, 1200, 3), A('a', 0, true, 1500, 4), A('a', 1, false, 900, 5), A('a', 2, true, 1100, 6),
+    A('b', 0, false, 9000, 1), A('b', 1, true, 8000, 2), A('b', 2, true, 7000, 3), A('b', 0, true, 6000, 4), A('b', 1, true, 6000, 5), A('b', 2, false, 9000, 6),
+    { pid: 'b', name: 'b', qid: 0, ok: false, given: '', ms: 20000, t: T + 7000, skip: true },
+  ];
+  const events = [
+    { t: T + 5000, type: 'caught', pid: 'a', data: { via: 'move' } }, { t: T + 6000, type: 'caught', pid: null, data: { by: 'dokkaebi' } },
+    { t: T + 2000, type: 'chest', pid: 'a', data: { i: 1, kind: 'steal', risky: true } }, { t: T + 3000, type: 'chest', pid: 'b', data: { i: 2, kind: 'gold', risky: false } },
+    { t: T + 30000, type: 'buy', pid: 'b', data: { item: 'perQ', level: 2, price: 30, moneyBefore: 40 } }, { t: T + 60000, type: 'buy', pid: 'b', data: { item: 'double', level: 1, price: 30, moneyBefore: 50 } },
+    { t: T, type: 'reel', pid: 'a', data: { quality: 'perfect' } }, { t: T, type: 'reel', pid: 'a', data: { quality: 'zzz' } },
+    { t: T, type: 'claim', pid: 'a', data: { cost: 2, enemy: true, star: false } }, { t: T, type: 'claim', pid: 'b', data: { cost: 1, enemy: false, star: true } },
+    { t: T, type: 'duel', pid: 'a', data: { outcome: 'win', ok: true, ms: 2000 } }, { t: T, type: 'duel', pid: 'b', data: { outcome: 'lose', ok: false, ms: 4000 } },
+    { t: T, type: 'choice', pid: 'a', data: { route: 'short' } }, { t: T, type: 'choice', pid: 'b', data: { route: 'long', refused: true } }, { t: T, type: 'item', pid: 'a', data: { kind: 'boost' } },
+  ];
+  return buildRecord({ title: '행동', mode: 'chest', questions: Q, players, log, startedAt: T, events });
+}
+test('mergeSessions: 예전 기록은 try/seq/streak 를 시간 순서로 채움', () => {
+  const ds = mergeSessions([rec1()]);
+  const c = ds.rows.filter(r => r.sk === nameKey('3 박서연')).sort((a, b) => a.seq - b.seq);
+  assert.deepEqual(c.map(r => r.seq), [1, 2, 3, 4]);
+  assert.deepEqual(c.map(r => r.try), [1, 1, 1, 2], '같은 문제를 다시 만나면 try 2');
+  assert.equal(c[3].skip, true, '빈 답은 건너뜀');
+  const a = ds.rows.filter(r => r.sk === nameKey('1 김하늘')).sort((x, y) => x.seq - y.seq);
+  assert.deepEqual(a.map(r => r.streak), [0, 1, 2]);
+});
+test('quadOf / questionMedians', () => {
+  assert.equal(quadOf({ ok: true, ms: 1000 }, 2000), 'fastOk');
+  assert.equal(quadOf({ ok: true, ms: 3000 }, 2000), 'slowOk');
+  assert.equal(quadOf({ ok: false, ms: 1000 }, 2000), 'fastWrong');
+  assert.equal(quadOf({ ok: false, ms: 3000 }, 2000), 'slowWrong');
+  assert.equal(quadOf({ ok: false, ms: 1000, skip: true }, 2000), null);
+  const m = questionMedians([{ qk: 'x', ms: 1, skip: false }, { qk: 'x', ms: 3, skip: false }, { qk: 'x', ms: 99, skip: true }]);
+  assert.equal(m.get('x'), 2);
+});
+test('behaviorAnalysis: 4분면·다시 만난 문제·흐름·건너뜀·모양·기기', () => {
+  const r = behavRec();
+  r.answers.forEach((a, i) => { a.dev = i % 2 ? 't' : 'p'; });
+  const B = behaviorAnalysis([r], { minAnswers: 3 });
+  assert.equal(B.n, 13);
+  const a = B.students.find(s => s.name === '1 가'), b = B.students.find(s => s.name === '2 나');
+  assert.equal(a.quad.fastWrong, 4); assert.equal(a.fastWrongFlag, true); assert.equal(b.fastWrongFlag, false);
+  assert.equal(b.quad.n, 6, '건너뜀은 4분면에서 뺌');
+  assert.equal(B.skip.n, 1); assert.equal(b.skip, 1);
+  assert.equal(a.retry.chances, 3); assert.equal(a.retry.recovered, 2);
+  assert.equal(B.retry.firstAcc, 2 / 6); assert.ok(Math.abs(B.retry.laterAcc - 4 / 7) < 1e-9);
+  const q0 = B.questions.find(q => q.no === 1);
+  assert.deepEqual(q0.recoveredBy.sort(), ['1 가', '2 나']);
+  assert.equal(b.thirds.reduce((x, t) => x + t.n, 0), 7);
+  assert.equal(b.fatigueFlag, false, '후반 답이 3개보다 적으면 판단 안 함');
+  assert.ok(b.afterWrong != null); assert.equal(a.longest, 1);
+  assert.equal(B.kinds.mc.n + B.kinds.ox.n, 13); assert.ok(B.devs.t.n > 0 && B.devs.p.n > 0);
+});
+test('behaviorAnalysis: 후반 정답률 떨어짐', () => {
+  const players = [{ pid: 'z', name: '9 자' }];
+  const log = Array.from({ length: 9 }, (_, i) => ({ pid: 'z', name: 'z', qid: i % 3, ok: i < 6, given: i < 6 ? Q[i % 3].answers[0] : 'x', ms: 3000, t: T + i * 1000 }));
+  const B = behaviorAnalysis([buildRecord({ questions: Q, players, log, startedAt: T })]);
+  const s = B.students[0];
+  assert.equal(s.drop, 1); assert.equal(s.fatigueFlag, true);
+  assert.deepEqual(s.thirds.map(t => t.acc), [1, 1, 0]);
+});
+test('behaviorAnalysis: 게임별 행동 이벤트', () => {
+  const g = behaviorAnalysis([behavRec()]).games;
+  assert.equal(g.caught.n, 1, '도깨비에게 잡힌 말은 셈하지 않음'); assert.deepEqual(Object.keys(g.caught.by), [nameKey('1 가')]);
+  assert.equal(g.chest.n, 2); assert.equal(g.chest.risky, 1);
+  assert.equal(g.buy.n, 2); assert.equal(g.buy.firstMed, 30); assert.deepEqual(g.buy.items, { perQ: 1, double: 1 });
+  assert.equal(g.reel.perfect, 1); assert.equal(g.reel.miss, 1);
+  assert.equal(g.claim.enemy, 1); assert.equal(g.claim.star, 1);
+  assert.equal(g.duel.win, 1); assert.equal(g.duel.lose, 1); assert.equal(g.duel.medMs, 3000);
+  assert.deepEqual(g.route, { short: 1, long: 1, auto: 0 }); assert.equal(g.item.kinds.boost, 1);
+});
+test('behaviorInsights / 시트: 부드러운 말과 수업 힌트', () => {
+  const B = behaviorAnalysis([behavRec()], { minAnswers: 3 });
+  const ins = behaviorInsights(B);
+  assert.ok(ins.length >= 4);
+  for (const x of ins) { assert.ok(x.text && x.hint); assert.ok(!/(못하|나쁜|게으|문제아)/.test(x.text + x.hint)); }
+  assert.equal(ins.find(x => x.id === 'quad').level, 'warn', '빠르게 틀림 30% 넘음');
+  assert.ok(ins.find(x => x.id === 'games').text.includes('무궁화'));
+  const rows = behaviorSheetRows(B);
+  assert.ok(rows.some(r => r[0] === '1 가' && String(r.at(-1)).includes('빠르게 틀림')));
+  assert.ok(analysisSheets([rec1()]).some(s => s.name === '학습행동'), '예전 기록도 학습행동 시트');
+  assert.equal(BEHAV.fastWrong, 0.3);
+  assert.deepEqual(behaviorInsights({ n: 0 }), []);
+});
+test('샘플: 학습 행동 칸이 채워져 있음', () => {
+  const r = recordsFromJSON(JSON.parse(fs.readFileSync(new URL('../public/samples/sample-record-2.json', import.meta.url), 'utf8')))[0];
+  for (const k of ['try', 'seq', 'streak', 'kind', 'dev']) assert.ok(k in r.answers[0], k);
+  const B = behaviorAnalysis([r]);
+  assert.ok(B.flags.fastWrong.length >= 1); assert.ok(B.games.item.n > 0);
 });

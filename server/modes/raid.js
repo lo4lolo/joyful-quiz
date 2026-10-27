@@ -180,7 +180,7 @@ export default {
     }
     if (now - m.lastBoard >= RULE.boardMs) {
       m.lastBoard = now;
-      api.toAll('board', { mvp: mvp(room), attackers: m.attackers.size, online: online(room), hp: Math.max(0, m.hp), max: m.max, bi: m.bi,
+      (api.toAllIfChanged || api.toAll)('board', { mvp: mvp(room), attackers: m.attackers.size, online: online(room), hp: Math.max(0, m.hp), max: m.max, bi: m.bi,
         timeLeft: Math.max(0, m.endsAt - now), phase: m.phase, total: m.total, mission: missionView(m, now) });
     }
   },

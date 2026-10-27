@@ -279,7 +279,7 @@ export default {
     }
     if (now - m.lastBoard >= RULE.boardMs && !m.over) {
       m.lastBoard = now;
-      api.toAll('board', { ...phaseMsg(room, now), chant: undefined, teams: teamsView(room), cur: curView(m) });
+      (api.toAllIfChanged || api.toAll)('board', { ...phaseMsg(room, now), chant: undefined, teams: teamsView(room), cur: curView(m) });
     }
   },
   ranking(room) {

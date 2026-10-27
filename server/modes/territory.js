@@ -81,6 +81,7 @@ export default {
     const prev = c.team;
     p.m.flags -= cost; p.m.claims++;
     c.team = p.team; c.by = p.name; c.t = Date.now();
+    api.event('claim', p.pid, { cost, enemy: prev >= 0, star: !!c.star });
     api.toAll('cell', { i: c.i, team: c.team, by: p.name, t: c.t, prev });
     if (prev >= 0) api.feed(`${TEAMS[p.team].emoji} ${p.name}이(가) ${TEAMS[prev].name} 땅을 차지했어요!`);
     else if (c.star) api.feed(`⭐ ${p.name}이(가) 보물 땅을 차지했어요!`);
@@ -93,7 +94,7 @@ export default {
   tick(room, api) {
     const now = Date.now();
     if (now >= room.m.endsAt) return api.end();
-    if (now - room.m.lastBoard > 1000) { room.m.lastBoard = now; api.toAll('teams', { teams: teamScores(room), endsAt: room.m.endsAt }); }
+    if (now - room.m.lastBoard > 1000) { room.m.lastBoard = now; (api.toAllIfChanged || api.toAll)('teams', { teams: teamScores(room), endsAt: room.m.endsAt }); }
   },
   ranking(room) {
     const ts = room.m.cells ? teamScores(room) : [];

@@ -95,11 +95,30 @@ export function mergeSessions(records) {
       const key = sByPid.get(String(k.pid)) || addStudent(k.pid, k.name);
       if (key) smap.get(key).results.push({ s: s.idx, rank: k.rank, score: k.score, extra: k.extra ?? '', of: rankN });
     }
+    const qKind = new Map((r.questions || []).map(q => [String(q.qid), q.kind || '']));
+    const mine = [];
     for (const a of r.answers || []) {
       const qk = qByQid.get(String(a.qid)), sk = sByPid.get(String(a.pid));
       if (!qk || !sk) continue;
-      rows.push({ s: s.idx, sk, qk, ok: !!a.ok, given: a.given ?? '', ms: isFinite(a.ms) ? +a.ms : null, t: +a.t || 0 });
+      const given = a.given ?? '';
+      mine.push({ s: s.idx, sk, qk, ok: !!a.ok, given, ms: isFinite(a.ms) ? +a.ms : null, t: +a.t || 0,
+        try: Number.isInteger(a.try) && a.try > 0 ? a.try : null, seq: Number.isInteger(a.seq) && a.seq > 0 ? a.seq : null,
+        streak: Number.isInteger(a.streak) && a.streak >= 0 ? a.streak : null, skip: !!a.skip || String(given).trim() === '',
+        kind: ['mc', 'ox', 'short'].includes(a.kind) ? a.kind : qKind.get(String(a.qid)) || '', dev: a.dev === 't' || a.dev === 'p' ? a.dev : '' });
     }
+    // 예전 기록: 몇 번째 만남·순서·직전 연속 정답을 시간 순서로 채운다
+    for (const list of groupBy(mine, x => x.sk).values()) {
+      list.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0) || a.t - b.t);
+      const met = new Map(); let run = 0;
+      list.forEach((x, i) => {
+        const n = (met.get(x.qk) || 0) + 1; met.set(x.qk, n);
+        if (x.try == null) x.try = n;
+        if (x.seq == null) x.seq = i + 1;
+        if (x.streak == null) x.streak = run;
+        run = x.ok ? run + 1 : 0;
+      });
+    }
+    rows.push(...mine);
   }
   sessions.forEach(s => { delete s.rec; });
   return { sessions, questions: [...qmap.values()], students: [...smap.values()], rows };
@@ -363,6 +382,7 @@ export function analysisSheets(records, { title } = {}) {
         ...A.cmp.same.map(x => [x.no, x.q, P(x.first.rate), P(x.last.rate), P(x.diff)])],
     });
   }
+  sheets.push({ name: '학습행동', cols: [18, 12, 10, 12, 12, 12, 12, 10, 10, 10, 10, 10, 10, 10, 10, 12], rows: behaviorSheetRows(behaviorAnalysis(records, { ds })) });
   if (records.some(hasCoop)) sheets.push({ name: '모둠협력', cols: [24, 16, 9, 12, 12, 9, 12, 12, 12, 8, 8, 30, 6, 6, 9, 10, 10, 10, 12], rows: coopSheetRows(coopAnalysis(records)) });
   const qByKey = new Map(ds.questions.map(q => [q.key, q])), sByKey = new Map(ds.students.map(s => [s.key, s]));
   sheets.push({
@@ -555,5 +575,288 @@ export function coopSheetRows(ca) {
     for (const t of s.teams) for (const m of t.members) rows.push([t.name, m.name, m.n, m.correct, m.contrib, P(m.share),
       [m.dom ? '독주' : '', m.zero ? '기여 0' : m.low ? '기여 적음' : ''].filter(Boolean).join(', '), REFLECT.find(x => x.v === m.reflect)?.label || '']);
   }
+  return rows;
+}
+
+// ======================================================================
+// 게임 속 학습 행동 (단순 정오답 외 분석)
+// 답마다: try(몇 번째 만남) · seq(순서) · streak(직전 연속 정답) · skip · kind · dev
+// 예전 기록은 mergeSessions 가 시간 순서로 try/seq/streak 를 채운다.
+// ======================================================================
+export const BEHAV = { fastWrong: 0.3, fatigueDrop: 0.15, minAnswers: 5 };
+export const QUAD = [
+  { k: 'fastOk', icon: '⚡', label: '빠르고 정확', sub: '숙달' },
+  { k: 'slowOk', icon: '🐢', label: '느리지만 정확', sub: '신중 · 아직 느림' },
+  { k: 'slowWrong', icon: '🧗', label: '느리고 틀림', sub: '어려움' },
+  { k: 'fastWrong', icon: '💨', label: '빠르게 틀림', sub: '찍기 · 성급 의심' },
+];
+export const KIND_LABEL = { ox: 'OX', mc: '선택형', short: '단답형' };
+export const DEV_LABEL = { t: '태블릿', p: '컴퓨터' };
+const r1 = x => (x == null ? null : Math.round(x * 1000) / 1000);
+const accOf = rs => (rs.length ? rs.filter(r => r.ok).length / rs.length : null);
+const emptyQuad = () => ({ fastOk: 0, slowOk: 0, slowWrong: 0, fastWrong: 0, n: 0 });
+
+/** 문제별 중간 응답 시간(건너뜀 제외) → 빠름/느림 가르는 선 */
+export function questionMedians(rows) {
+  const m = new Map();
+  for (const [qk, rs] of groupBy(rows.filter(r => !r.skip && r.ms != null), r => r.qk)) m.set(qk, median(rs.map(r => r.ms)));
+  return m;
+}
+/** 답 하나의 4분면 (건너뜀·시간 없음은 null) */
+export function quadOf(r, med) {
+  if (r.skip || r.ms == null || med == null) return null;
+  const fast = r.ms <= med;
+  return r.ok ? (fast ? 'fastOk' : 'slowOk') : (fast ? 'fastWrong' : 'slowWrong');
+}
+const addQuad = (o, q) => { if (q) { o[q]++; o.n++; } };
+const shareQuad = o => Object.fromEntries(QUAD.map(x => [x.k, o.n ? o[x.k] / o.n : 0]));
+const topQuad = o => (o.n ? QUAD.reduce((a, x) => (o[x.k] > o[a.k] ? x : a), QUAD[0]).k : null);
+
+/** 한 학생(또는 묶음)의 답 순서에서: 오답 뒤 정답률, 정답 뒤 정답률, 가장 긴 연속 정답 */
+function flowStats(seqLists) {
+  let afterWrong = 0, afterWrongOk = 0, afterOk = 0, afterOkOk = 0, longest = 0;
+  for (const list of seqLists) {
+    let run = 0;
+    list.forEach((r, i) => {
+      run = r.ok ? run + 1 : 0; if (run > longest) longest = run;
+      if (r.streak != null && r.ok && r.streak + 1 > longest) longest = r.streak + 1;
+      if (i === 0) return;
+      const prev = list[i - 1];
+      if (prev.ok) { afterOk++; if (r.ok) afterOkOk++; } else { afterWrong++; if (r.ok) afterWrongOk++; }
+    });
+  }
+  return { afterWrongN: afterWrong, afterWrong: afterWrong ? afterWrongOk / afterWrong : null, afterOkN: afterOk, afterOk: afterOk ? afterOkOk / afterOk : null, longest };
+}
+/** 초반·중반·후반 (학생·기록마다 자기 답 순서를 셋으로) */
+function thirdsOf(seqLists, minLen = 6) {
+  const parts = [[], [], []];
+  for (const list of seqLists) {
+    if (list.length < minLen) continue;
+    list.forEach((r, i) => parts[Math.min(2, Math.floor((i * 3) / list.length))].push(r));
+  }
+  return parts.map(rs => ({ n: rs.length, acc: accOf(rs), medMs: median(rs.filter(r => !r.skip && r.ms != null).map(r => r.ms)) }));
+}
+/** 다시 만난 문제: 처음 만남 vs 다시 만남 정답률, 처음 틀렸다가 다시 만나 맞힌 문제 */
+function retryStats(rs) {
+  const first = rs.filter(r => r.try === 1), later = rs.filter(r => r.try >= 2);
+  const byPair = groupBy(rs, r => `${r.s}\u0001${r.sk}\u0001${r.qk}`);
+  let chances = 0, recovered = 0; const recoveredKeys = [];
+  for (const [k, list] of byPair) {
+    const sorted = [...list].sort((a, b) => a.try - b.try || a.seq - b.seq);
+    if (sorted.length < 2 || sorted[0].ok) continue;
+    chances++;
+    if (sorted.slice(1).some(r => r.ok)) { recovered++; recoveredKeys.push(k); }
+  }
+  const fa = accOf(first), la = accOf(later);
+  return { firstN: first.length, firstAcc: fa, laterN: later.length, laterAcc: la, gain: fa != null && la != null ? la - fa : null, chances, recovered, recoverRate: chances ? recovered / chances : null, recoveredKeys };
+}
+const kindStats = rs => Object.fromEntries([...groupBy(rs, r => r.kind || '?')].map(([k, v]) => [k, { n: v.length, acc: accOf(v) }]));
+const devStats = rs => Object.fromEntries([...groupBy(rs.filter(r => r.dev), r => r.dev)].map(([k, v]) => [k, { n: v.length, acc: accOf(v), short: v.filter(r => r.kind === 'short').length }]));
+
+/** 게임 이벤트 (모드별 행동). 학생 키 → 이름 연결은 기록 players 로 */
+function gameEvents(records, nameKeyOf) {
+  const out = {
+    caught: { n: 0, by: {} }, chest: { n: 0, risky: 0, by: {} }, buy: { n: 0, firstSec: [], items: {}, by: {} },
+    reel: { n: 0, perfect: 0, good: 0, miss: 0, by: {} }, claim: { n: 0, enemy: 0, star: 0, by: {} }, item: { n: 0, kinds: {} },
+    duel: { n: 0, win: 0, lose: 0, double: 0, ghostWin: 0, ghostLose: 0, ok: 0, ms: [], by: {} }, route: { short: 0, long: 0, auto: 0 },
+  };
+  const per = (o, sk) => (o.by[sk] ||= {});
+  for (const r of records) {
+    const start = Date.parse(r.startedAt) || Math.min(...(r.answers || []).map(a => a.t).filter(Boolean), Infinity);
+    const name = new Map((r.players || []).map(p => [String(p.pid), p.name]));
+    const firstBuy = new Map();
+    for (const e of r.events || []) {
+      const d = e.data || {}, nm = e.pid != null ? name.get(String(e.pid)) : null, sk = nm ? nameKeyOf(nm) : null;
+      switch (e.type) {
+        case 'caught': if (sk && d.by !== 'dokkaebi') { out.caught.n++; const o = per(out.caught, sk); o.n = (o.n || 0) + 1; } break;
+        case 'chest': { out.chest.n++; if (d.risky) out.chest.risky++; if (sk) { const o = per(out.chest, sk); o.n = (o.n || 0) + 1; if (d.risky) o.risky = (o.risky || 0) + 1; } break; }
+        case 'buy': {
+          out.buy.n++; const it = String(d.item ?? '?'); out.buy.items[it] = (out.buy.items[it] || 0) + 1;
+          if (sk) {
+            const o = per(out.buy, sk); o.n = (o.n || 0) + 1; o.items ||= {}; o.items[it] = (o.items[it] || 0) + 1;
+            if (!firstBuy.has(sk) && isFinite(start)) { firstBuy.set(sk, 1); const sec = Math.max(0, (e.t - start) / 1000); out.buy.firstSec.push(sec); o.firstSec = sec; }
+          }
+          break;
+        }
+        case 'reel': { const q = ['perfect', 'good'].includes(d.quality) ? d.quality : 'miss'; out.reel.n++; out.reel[q]++; if (sk) { const o = per(out.reel, sk); o[q] = (o[q] || 0) + 1; o.n = (o.n || 0) + 1; } break; }
+        case 'claim': { out.claim.n++; if (d.enemy) out.claim.enemy++; if (d.star) out.claim.star++; if (sk) { const o = per(out.claim, sk); o.n = (o.n || 0) + 1; if (d.enemy) o.enemy = (o.enemy || 0) + 1; } break; }
+        case 'item': { out.item.n++; const k = String(d.kind ?? '?'); out.item.kinds[k] = (out.item.kinds[k] || 0) + 1; break; }
+        case 'duel': {
+          const oc = ['win', 'lose', 'double', 'ghostWin', 'ghostLose'].includes(d.outcome) ? d.outcome : 'lose';
+          out.duel.n++; out.duel[oc]++; if (d.ok) out.duel.ok++; if (Number.isFinite(+d.ms) && +d.ms > 0) out.duel.ms.push(+d.ms);
+          if (sk) { const o = per(out.duel, sk); o.n = (o.n || 0) + 1; if (oc === 'win' || oc === 'ghostWin') o.win = (o.win || 0) + 1; }
+          break;
+        }
+        case 'choice': if (d.route === 'short' || d.route === 'long') { out.route[d.route]++; if (d.auto) out.route.auto++; } break;
+      }
+    }
+  }
+  out.buy.firstMed = median(out.buy.firstSec); delete out.buy.firstSec;
+  out.duel.medMs = median(out.duel.ms); delete out.duel.ms;
+  return out;
+}
+
+/**
+ * 게임 속 학습 행동 분석
+ * 반환: { n, quad, quadShare, retry, thirds, flow, skip, kinds, devs, students[], questions[], games, flags }
+ */
+export function behaviorAnalysis(records, opt = {}) {
+  const O = { ...BEHAV, ...opt };
+  const ds = opt.ds || mergeSessions(records);
+  const rows = ds.rows, med = questionMedians(rows);
+  const name = new Map(ds.students.map(s => [s.key, s.name])), qinfo = new Map(ds.questions.map(q => [q.key, q]));
+  const seqLists = list => [...groupBy(list, r => r.s).values()].map(l => [...l].sort((a, b) => a.seq - b.seq || a.t - b.t));
+  const quad = emptyQuad(); for (const r of rows) addQuad(quad, quadOf(r, med.get(r.qk)));
+  const allSeq = [...groupBy(rows, r => `${r.s}\u0001${r.sk}`).values()].map(l => [...l].sort((a, b) => a.seq - b.seq || a.t - b.t));
+  const retry = retryStats(rows);
+  const thirds = thirdsOf(allSeq);
+  const flow = flowStats(allSeq);
+  const students = [...groupBy(rows, r => r.sk)].map(([sk, rs]) => {
+    const q = emptyQuad(); for (const r of rs) addQuad(q, quadOf(r, med.get(r.qk)));
+    const lists = seqLists(rs);
+    const th = thirdsOf(lists), fl = flowStats(lists), rt = retryStats(rs);
+    const early = [...th[0].n ? [th[0]] : [], ...th[1].n ? [th[1]] : []];
+    const earlyN = early.reduce((a, x) => a + x.n, 0), earlyAcc = earlyN ? early.reduce((a, x) => a + x.acc * x.n, 0) / earlyN : null;
+    const drop = earlyAcc != null && th[2].n >= 3 ? earlyAcc - th[2].acc : null;
+    const qs = shareQuad(q);
+    return {
+      key: sk, name: name.get(sk) || sk, n: rs.length, acc: accOf(rs), quad: q, quadShare: qs, top: topQuad(q),
+      fastWrongFlag: q.n >= O.minAnswers && qs.fastWrong >= O.fastWrong,
+      retry: { firstAcc: rt.firstAcc, laterAcc: rt.laterAcc, laterN: rt.laterN, gain: rt.gain, chances: rt.chances, recovered: rt.recovered },
+      thirds: th, drop, fatigueFlag: drop != null && drop >= O.fatigueDrop,
+      afterWrong: fl.afterWrong, afterWrongN: fl.afterWrongN, longest: fl.longest,
+      skip: rs.filter(r => r.skip).length, skipRate: rs.length ? rs.filter(r => r.skip).length / rs.length : 0,
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name, 'ko', { numeric: true }));
+  const questions = [...groupBy(rows, r => r.qk)].map(([qk, rs]) => {
+    const q = emptyQuad(); for (const r of rs) addQuad(q, quadOf(r, med.get(r.qk)));
+    const rt = retryStats(rs), Q = qinfo.get(qk) || {};
+    return {
+      key: qk, no: Q.no, q: Q.q || '', kind: Q.kind || '', n: rs.length, acc: accOf(rs), medMs: med.get(qk) ?? null, quad: q, quadShare: shareQuad(q),
+      skip: rs.filter(r => r.skip).length, skipRate: rs.filter(r => r.skip).length / rs.length,
+      retry: { firstAcc: rt.firstAcc, laterAcc: rt.laterAcc, laterN: rt.laterN, gain: rt.gain, chances: rt.chances, recovered: rt.recovered },
+      recoveredBy: rt.recoveredKeys.map(k => name.get(k.split('\u0001')[1])).filter(Boolean),
+    };
+  }).sort((a, b) => (a.no ?? 0) - (b.no ?? 0));
+  const games = gameEvents(records, nameKey);
+  const skipN = rows.filter(r => r.skip).length;
+  return {
+    n: rows.length, quad, quadShare: shareQuad(quad), retry: { ...retry, recoveredKeys: undefined }, thirds, flow,
+    skip: { n: skipN, rate: rows.length ? skipN / rows.length : 0 },
+    overallAcc: accOf(rows), kinds: kindStats(rows), devs: devStats(rows),
+    students, questions, games,
+    hasTry: rows.some(r => r.try >= 2),
+    flags: {
+      fastWrong: students.filter(s => s.fastWrongFlag).map(s => s.key),
+      fatigue: students.filter(s => s.fatigueFlag).map(s => s.key),
+      skip: students.filter(s => s.n >= O.minAnswers && s.skipRate >= 0.2).map(s => s.key),
+    },
+    opt: O,
+  };
+}
+
+/** 선생님에게 보여 줄 짧은 해석 + 수업에 쓰는 법 (아이를 낙인찍지 않는 말투) */
+export function behaviorInsights(B) {
+  const P = x => `${Math.round((x || 0) * 100)}%`, out = [];
+  if (!B?.n) return out;
+  const qs = B.quadShare;
+  out.push({
+    id: 'quad', icon: '⏱️', title: '속도와 정확도',
+    text: `빠르고 정확한 답이 ${P(qs.fastOk)}, 느리지만 정확한 답이 ${P(qs.slowOk)}예요. 빠르게 틀린 답은 ${P(qs.fastWrong)}${qs.fastWrong >= B.opt.fastWrong ? '로 조금 많은 편이에요' : '예요'}.`,
+    hint: qs.fastWrong >= B.opt.fastWrong ? '다음엔 시간 제한을 조금 늘리거나, 답을 고르기 전에 짝에게 ‘이유 먼저 말하기’를 해 보세요.' : '느리지만 정확한 친구들은 생각하는 중이에요. 기다려 주는 시간을 지켜 주세요.',
+    level: qs.fastWrong >= B.opt.fastWrong ? 'warn' : 'ok',
+  });
+  if (B.hasTry && B.retry.laterN) {
+    const g = B.retry.gain;
+    out.push({
+      id: 'retry', icon: '🔁', title: '다시 만난 문제',
+      text: `처음 만났을 때 정답률 ${P(B.retry.firstAcc)} → 다시 만났을 때 ${P(B.retry.laterAcc)} (${g >= 0 ? '+' : ''}${Math.round(g * 100)}%p). 처음 틀린 문제 ${B.retry.chances}개 가운데 ${B.retry.recovered}개를 다시 만나 맞혔어요.`,
+      hint: g > 0.05 ? '게임 안에서 배우고 있다는 신호예요. 해설을 보는 시간을 계속 넉넉히 주세요.' : '다시 만나도 잘 안 오르는 문제는 해설만으로는 부족해요. 수업에서 예시를 하나 더 보여 주세요.',
+      level: g > 0.05 ? 'ok' : 'warn',
+    });
+  }
+  const [a, b, c] = B.thirds;
+  if (a.n && c.n) {
+    const drop = (a.acc ?? 0) - (c.acc ?? 0);
+    out.push({
+      id: 'flow', icon: '📈', title: '게임 흐름 (초반·중반·후반)',
+      text: `정답률 ${P(a.acc)} → ${P(b.acc)} → ${P(c.acc)}, 중간 응답 시간 ${secText(a.medMs)} → ${secText(b.medMs)} → ${secText(c.medMs)}.${drop >= B.opt.fatigueDrop ? ' 후반에 집중이 조금 떨어진 것 같아요.' : ''}`,
+      hint: drop >= B.opt.fatigueDrop ? '게임 시간을 조금 줄이거나, 중간에 1분 몸풀기·쉬는 시간을 넣어 보세요.' : '끝까지 집중이 잘 이어졌어요. 지금 길이가 알맞아요.',
+      level: drop >= B.opt.fatigueDrop ? 'warn' : 'ok',
+    });
+  }
+  if (B.flow.afterWrongN >= 5) {
+    const lo = B.flow.afterWrong < (B.overallAcc ?? 0) - 0.1;
+    out.push({
+      id: 'recover', icon: '🌱', title: '틀린 뒤 다시 일어서기',
+      text: `틀린 바로 다음 문제의 정답률은 ${P(B.flow.afterWrong)}예요 (전체 ${P(B.overallAcc)}). 가장 긴 연속 정답은 ${B.flow.longest}개예요.`,
+      hint: lo ? '틀린 뒤 흔들리는 친구들이 있어요. “틀려도 괜찮아, 해설 보고 다시!”를 자주 말해 주세요.' : '틀려도 금방 다시 맞히는 힘이 있어요. 실수를 배움으로 칭찬해 주세요.',
+      level: lo ? 'warn' : 'ok',
+    });
+  }
+  if (B.skip.n) {
+    out.push({
+      id: 'skip', icon: '⏳', title: '건너뜀 · 시간 초과',
+      text: `모든 답의 ${P(B.skip.rate)}가 시간 초과나 빈칸이었어요.${B.flags.skip.length ? ` 20% 넘게 건너뛴 학생이 ${B.flags.skip.length}명 있어요.` : ''}`,
+      hint: B.skip.rate >= 0.1 ? '문제 글이 길거나 어려웠을 수 있어요. 글을 짧게 고치거나 시간을 늘려 보세요.' : '대부분 끝까지 답했어요.',
+      level: B.skip.rate >= 0.1 ? 'warn' : 'ok',
+    });
+  }
+  const kinds = Object.entries(B.kinds).filter(([k, v]) => KIND_LABEL[k] && v.n >= 5);
+  if (kinds.length >= 2) {
+    const sorted = [...kinds].sort((x, y) => x[1].acc - y[1].acc);
+    out.push({
+      id: 'kind', icon: '🔤', title: '문제 모양별',
+      text: kinds.map(([k, v]) => `${KIND_LABEL[k]} ${P(v.acc)}`).join(' · ') + '.',
+      hint: sorted[0][0] === 'short' ? '단답형이 어려웠어요. 핵심 낱말을 칠판에 적어 두고 써 보는 연습을 해 보세요.' : sorted[0][0] === 'ox' ? 'OX가 오히려 낮아요. 헷갈리는 문장을 함께 고쳐 보며 왜 틀렸는지 말해 보세요.' : `${KIND_LABEL[sorted[0][0]]} 문제가 가장 낮아요. 보기 가운데 그럴듯한 오답을 함께 살펴보세요.`,
+      level: 'info',
+    });
+  }
+  const g = B.games, games = [];
+  if (g.caught.n) games.push(`무궁화 들킴 ${g.caught.n}번 (${Object.keys(g.caught.by).length}명)`);
+  if (g.chest.n) games.push(`보물 상자 위험 결과 ${P(g.chest.risky / g.chest.n)}`);
+  if (g.buy.n) games.push(`퀴즈 부자 첫 구매 중간값 ${Math.round(g.buy.firstMed ?? 0)}초`);
+  if (g.reel.n) games.push(`낚시 완벽 타이밍 ${P(g.reel.perfect / g.reel.n)}`);
+  if (g.claim.n) games.push(`땅따먹기 공격 ${P(g.claim.enemy / g.claim.n)} · 확장 ${P(1 - g.claim.enemy / g.claim.n)}`);
+  if (g.duel.n) games.push(`뿅망치 대결 정답 ${P(g.duel.ok / g.duel.n)}`);
+  if (g.item.n) games.push(`카트 아이템 ${g.item.n}번`);
+  if (g.route.short + g.route.long) games.push(`윷 지름길 ${g.route.short} · 긴 길 ${g.route.long}`);
+  if (games.length) out.push({
+    id: 'games', icon: '🎮', title: '게임 속 선택', text: games.join(' · ') + '.',
+    hint: g.caught.n ? '무궁화에서 자주 들킨 친구는 마음이 급했을 수 있어요. ‘멈추고 생각하기’ 신호를 연습해 보세요.' : '게임 속 선택은 아이들의 마음(조심·도전·서두름)을 보여 줘요. 결과보다 이유를 물어봐 주세요.',
+    level: 'info',
+  });
+  return out;
+}
+
+/** 엑셀 '학습행동' 시트 행 */
+export function behaviorSheetRows(B, names = n => n) {
+  const P = x => (x == null ? '' : Math.round(x * 1000) / 10);
+  const sec = ms => (ms == null ? '' : Math.round(ms / 100) / 10);
+  const rows = [['게임 속 학습 행동 (빠름/느림 = 문제마다 중간 응답 시간 기준, 건너뜀 제외)'], []];
+  rows.push(['4분면', ...QUAD.map(q => `${q.label}(${q.sub})`)], ['답 수', ...QUAD.map(q => B.quad[q.k])], ['비율(%)', ...QUAD.map(q => P(B.quadShare[q.k]))], []);
+  rows.push(['다시 만난 문제', '처음 만남 정답률(%)', P(B.retry.firstAcc), '다시 만남 정답률(%)', P(B.retry.laterAcc), '향상(%p)', B.retry.gain == null ? '' : P(B.retry.gain), '처음 틀린 뒤 다시 맞힘', `${B.retry.recovered}/${B.retry.chances}`]);
+  rows.push(['게임 흐름', '초반 정답률(%)', P(B.thirds[0].acc), '중반(%)', P(B.thirds[1].acc), '후반(%)', P(B.thirds[2].acc), '중간 시간(초)', [0, 1, 2].map(i => sec(B.thirds[i].medMs)).join(' / ')]);
+  rows.push(['오답 뒤', '바로 다음 정답률(%)', P(B.flow.afterWrong), '정답 뒤(%)', P(B.flow.afterOk), '전체(%)', P(B.overallAcc), '가장 긴 연속 정답', B.flow.longest]);
+  rows.push(['건너뜀·시간 초과', B.skip.n, '비율(%)', P(B.skip.rate)]);
+  rows.push(['문제 모양별(%)', ...Object.entries(B.kinds).filter(([k]) => KIND_LABEL[k]).map(([k, v]) => `${KIND_LABEL[k]} ${P(v.acc)} (${v.n})`)]);
+  rows.push(['기기별(%)', ...Object.entries(B.devs).map(([k, v]) => `${DEV_LABEL[k] || k} ${P(v.acc)} (${v.n})`)]);
+  rows.push([], ['이름', '응답', '정답률(%)', ...QUAD.map(q => `${q.label}(%)`), '처음 만남(%)', '다시 만남(%)', '다시 맞힘', '초반(%)', '중반(%)', '후반(%)', '오답 뒤(%)', '가장 긴 연속', '건너뜀(%)', '살펴볼 점']);
+  for (const s of B.students) rows.push([names(s.name), s.n, P(s.acc), ...QUAD.map(q => P(s.quadShare[q.k])), P(s.retry.firstAcc), P(s.retry.laterAcc), `${s.retry.recovered}/${s.retry.chances}`,
+    ...s.thirds.map(t => P(t.acc)), P(s.afterWrong), s.longest, P(s.skipRate),
+    [s.fastWrongFlag ? '빠르게 틀림 많음' : '', s.fatigueFlag ? '후반 정답률 떨어짐' : '', s.n >= B.opt.minAnswers && s.skipRate >= 0.2 ? '건너뜀 많음' : ''].filter(Boolean).join(', ')]);
+  rows.push([], ['번호', '문항', '응답', '정답률(%)', '중간 시간(초)', ...QUAD.map(q => `${q.label}(%)`), '처음 만남(%)', '다시 만남(%)', '다시 맞힌 학생 수', '건너뜀(%)']);
+  for (const q of B.questions) rows.push([q.no, q.q, q.n, P(q.acc), sec(q.medMs), ...QUAD.map(x => P(q.quadShare[x.k])), P(q.retry.firstAcc), P(q.retry.laterAcc), q.retry.recovered, P(q.skipRate)]);
+  const g = B.games;
+  const gl = [];
+  if (g.caught.n) gl.push(['무궁화 들킴', g.caught.n, '학생 수', Object.keys(g.caught.by).length]);
+  if (g.chest.n) gl.push(['보물 상자', g.chest.n, '위험 결과', g.chest.risky, '비율(%)', P(g.chest.risky / g.chest.n)]);
+  if (g.buy.n) gl.push(['퀴즈 부자 구매', g.buy.n, '첫 구매 중간값(초)', Math.round(g.buy.firstMed ?? 0), '물건', Object.entries(g.buy.items).map(([k, v]) => `${k} ${v}`).join(', ')]);
+  if (g.reel.n) gl.push(['낚시 타이밍', g.reel.n, '완벽', g.reel.perfect, '좋음', g.reel.good, '놓침', g.reel.miss]);
+  if (g.claim.n) gl.push(['땅따먹기', g.claim.n, '공격', g.claim.enemy, '확장', g.claim.n - g.claim.enemy, '별 칸', g.claim.star]);
+  if (g.item.n) gl.push(['카트 아이템', g.item.n, Object.entries(g.item.kinds).map(([k, v]) => `${k} ${v}`).join(', ')]);
+  if (g.duel.n) gl.push(['뿅망치 대결', g.duel.n, '이김', g.duel.win + g.duel.ghostWin, '짐', g.duel.lose + g.duel.ghostLose, '무승부', g.duel.double, '중간 시간(초)', sec(g.duel.medMs)]);
+  if (g.route.short + g.route.long) gl.push(['윷 갈림길', g.route.short + g.route.long, '지름길', g.route.short, '긴 길', g.route.long]);
+  if (gl.length) rows.push([], ['게임별 행동'], ...gl);
   return rows;
 }

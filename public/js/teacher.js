@@ -1,5 +1,5 @@
 // 선생님 셸 v0.2: 퀴즈 세트 보관함 → 세트 편집 → 게임 고르기 → 설정 → 대기실(TV) → 진행 → 결과·저장
-import { $, $$, esc, store, toast, connect, emit, avatarHTML, sound, music, showQuiz, qrSVG, pct, fx, session as sstore, onImgFail } from './common.js';
+import { $, $$, esc, store, toast, connect, emit, avatarHTML, sound, music, showQuiz, qrSVG, pct, fx, session as sstore, onImgFail, SERVER, apiURL } from './common.js';
 import { MODES, MODE, defaults } from './modes/info.js';
 import { buildRecord, saveRecord, chooseFolder, folderInfo, liveDraft } from './record.js';
 
@@ -8,6 +8,7 @@ let room = null, session = store.get('jq_teacher', null), questionsSrv = [], log
 let mode = store.get('jq_mode', 'live');
 let allSettings = store.get('jq_settings', {});
 let nickMode = store.get('jq_nick', false);
+let maxPlayers = store.get('jq_max', 40);
 let unmount = null, mounting = false, buffer = [];
 const handlers = new Map(), roomFns = new Set(), logFns = new Set(), feedFns = new Set();
 let lastRecord = null, saved = false, info = { pinRequired: false };
@@ -353,7 +354,7 @@ function openPicker() {
   const n = questions().length;
   $('#pk-set').textContent = `· ${$('#title').value || '제목 없는 세트'} (문제 ${n}개)`;
   const boxHTML = m => `<button class="box" data-id="${m.id}" style="--mc:${m.color}">
-    <div class="art"><img src="assets/modes/${m.id}.png" alt="" data-em="${m.emoji}"></div>
+    <div class="art"><img src="assets/modes/${m.id}.webp" alt="" data-em="${m.emoji}"></div>
     <div class="body"><span class="nm">${m.emoji} ${esc(m.name)}</span><span class="sh">${esc(m.short)}</span>
     <span class="tags">${m.coop ? '<span class="new">모둠 협력</span>' : NEW.has(m.id) ? '<span class="new">새 게임</span>' : ''}<span>${m.players}</span><span>${m.pace}</span><span>${m.when}</span></span></div></button>`;
   const has = m => !serverModes || serverModes.has(m.id); // 서버에 있는 게임만
@@ -370,7 +371,7 @@ function openSettings() {
   const M = MODE[mode], cs = curSettings();
   $('#sm-title').textContent = `${M.emoji} ${M.name}`;
   $('#sm-desc').textContent = M.teacher;
-  const art = $('#sm-art'); art.hidden = false; art.src = `assets/modes/${M.id}.png`;
+  const art = $('#sm-art'); art.hidden = false; art.src = `assets/modes/${M.id}.webp`;
   onImgFail(art, () => { art.hidden = true; });
   $('#settings').innerHTML = M.settings.map(s => `<div class="setrow"><span>${esc(s.label)}</span>
     <div class="chips" data-k="${s.key}">${s.options.map(([v, l]) => `<button class="chip ${String(cs[s.key]) === String(v) ? 'on' : ''}" data-v='${JSON.stringify(v)}'>${esc(l)}</button>`).join('')}</div></div>`).join('');
@@ -379,6 +380,8 @@ function openSettings() {
     $$('.chip', box).forEach(x => x.classList.toggle('on', x === c));
   }));
   $$('#nick-chips .chip').forEach(c => { c.classList.toggle('on', (c.dataset.v === '1') === nickMode); c.onclick = () => { nickMode = c.dataset.v === '1'; store.set('jq_nick', nickMode); $$('#nick-chips .chip').forEach(x => x.classList.toggle('on', x === c)); }; });
+  $('#max-row').hidden = mode === 'race'; // 카트는 40명까지
+  $$('#max-chips .chip').forEach(c => { c.classList.toggle('on', +c.dataset.v === maxPlayers); c.onclick = () => { maxPlayers = +c.dataset.v; store.set('jq_max', maxPlayers); $$('#max-chips .chip').forEach(x => x.classList.toggle('on', x === c)); }; });
   $('#sm-open').textContent = room && session && room.state !== 'play' ? '이 설정으로 바꾸기' : '방 열기';
   $('#set-modal').hidden = false;
 }
@@ -392,7 +395,7 @@ async function openRoom(pin = sstore.get('jq_pin', '')) {
   if (!qs.length) return toast('문제를 1개 이상 넣어 주세요.', 3000);
   sound.unlock();
   $('#sm-open').disabled = true;
-  const body = { title: $('#title').value.trim() || '우리 반 퀴즈', mode, settings: { ...curSettings(), nick: nickMode }, questions: qs, pin };
+  const body = { title: $('#title').value.trim() || '우리 반 퀴즈', mode, settings: { ...curSettings(), nick: nickMode, maxPlayers: mode === 'race' ? 40 : maxPlayers }, questions: qs, pin };
   let r;
   if (room && session && room.state !== 'play') r = await emit(socket, 't:update', body);
   else { r = await emit(socket, 't:create', body); if (!r.error) { session = { code: r.code, key: r.key }; store.set('jq_teacher', session); } }
@@ -409,11 +412,12 @@ $('#pin-cancel').onclick = () => { $('#pin-modal').hidden = true; };
 let base = null;
 async function studentBase() {
   if (base) return base;
-  base = location.origin + '/';
+  // 학생 주소: 화면이 GitHub Pages 처럼 서버와 다른 곳에 있으면 지금 이 화면의 주소를 그대로 쓴다
+  base = location.origin + location.pathname.replace(/[^/]*$/, '');
   try {
-    info = await (await fetch('/api/info')).json();
-    if (info.publicUrl) base = info.publicUrl;
-    else if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && info.lan?.length) {
+    info = await (await fetch(apiURL('/api/info'))).json();
+    if (info.publicUrl && !SERVER) base = info.publicUrl;
+    else if (!SERVER && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && info.lan?.length) { // 교실 PC 한 대로 쓸 때만
       base = info.lan[0]; $('#l-lan').textContent = info.lan.length > 1 ? `다른 주소: ${info.lan.slice(1).join(', ')} (같은 와이파이)` : '같은 와이파이에 연결된 기기에서 들어올 수 있어요.';
     }
   } catch {}
@@ -447,7 +451,7 @@ function renderLobby() {
       <span class="nm">${esc(p.name)}</span>${p.realName && p.realName !== p.name ? `<span class="real">${esc(p.realName)}</span>` : ''}<button class="x" data-pid="${p.pid}" title="내보내기" aria-label="${esc(p.realName || p.name)} 내보내기">✕</button></div>`;
     $('#l-players').classList.toggle('teamed', !!tc);
     $('#l-players').innerHTML = !ps.length ? '<div class="empty">학생들이 들어오면 여기에 스티커가 붙어요 ✨</div>'
-      : tc ? room.teams.map((t, k) => `<div class="team-col" style="--tc:${t.color}"><div class="team-head"><img src="assets/trad/team_${t.id}.png" alt="" data-em="${t.emoji}"><b>${esc(t.name)} 모둠</b><small>${ps.filter(p => p.team === k).length}명</small></div>
+      : tc ? room.teams.map((t, k) => `<div class="team-col" style="--tc:${t.color}"><div class="team-head"><img src="assets/trad/team_${t.id}.webp" alt="" data-em="${t.emoji}"><b>${esc(t.name)} 모둠</b><small>${ps.filter(p => p.team === k).length}명</small></div>
           <div class="team-kids">${ps.filter(p => p.team === k).map(kid).join('')}</div></div>`).join('')
       : ps.map(kid).join('');
     $$('#l-players .team-head img').forEach(img => onImgFail(img, () => { img.outerHTML = `<span class="em">${img.dataset.em}</span>`; }));
@@ -533,6 +537,7 @@ async function doSave(auto) {
   try {
     const r = await saveRecord(lastRecord, { xlsx: true });
     saved = true; liveDraft.clear();
+    emit(socket, 't:purge', {}); // 서버 메모리의 응답 기록 바로 지우기
     store.set('jq_saved_games', [...savedKeys(), gameKey()].slice(-30));
     $('#r-save').className = 'save-box';
     $('#r-save').innerHTML = r.where === 'folder'
@@ -581,12 +586,36 @@ function showResult() {
 }
 $('#r-savebtn').onclick = () => doSave(false);
 $('#r-analyze').onclick = () => { window.open('analyze.html?from=last', '_blank'); };
-const unsavedOk = () => saved || !log.length || confirm('결과를 아직 저장하지 않았어요. 그래도 넘어갈까요?');
-$('#r-again').onclick = async () => { if (!unsavedOk()) return; lastRecord = null; await emit(socket, 't:lobby', {}); openLobby(); };
-$('#r-change').onclick = async () => { if (!unsavedOk()) return; lastRecord = null; await emit(socket, 't:lobby', {}); openPicker(); };
+// 저장하지 않은 기록이 있으면 두 번 확인: ① 저장할까요? ② 정말 버릴까요? (되돌릴 수 없음)
+function askDiscard(action) {
+  return new Promise(resolve => {
+    const m = $('#discard-modal'); let step = 1;
+    const set = () => {
+      $('#dc-title').textContent = step === 1 ? '아직 결과를 저장하지 않았어요' : '정말 저장하지 않을까요?';
+      $('#dc-text').textContent = step === 1 ? '이 게임의 기록(정답·응답 시간·게임 속 행동·모둠 협력)을 선생님 컴퓨터에 저장할까요?'
+        : `저장하지 않고 ${action}하면 이 게임의 기록은 바로 지워지고 되돌릴 수 없어요.`;
+      $('#dc-discard').textContent = step === 1 ? '저장하지 않기' : `저장하지 않고 ${action}`;
+    };
+    const done = v => { m.hidden = true; resolve(v); };
+    $('#dc-cancel').onclick = () => done('cancel');
+    $('#dc-save').onclick = () => done('save');
+    $('#dc-discard').onclick = () => { if (step === 1) { step = 2; set(); fx.shake($('#discard-modal .card')); } else done('discard'); };
+    set(); m.hidden = false;
+  });
+}
+async function unsavedOk(action) {
+  if (saved || !log.length) return true;
+  const v = await askDiscard(action);
+  if (v === 'cancel') return false;
+  if (v === 'save') { await doSave(false); return saved; }
+  return true;
+}
+$('#r-again').onclick = async () => { if (!(await unsavedOk('다시'))) return; lastRecord = null; await emit(socket, 't:lobby', {}); openLobby(); };
+$('#r-change').onclick = async () => { if (!(await unsavedOk('넘어가기'))) return; lastRecord = null; await emit(socket, 't:lobby', {}); openPicker(); };
 $('#r-new').onclick = async () => {
-  if (!unsavedOk()) return;
-  await emit(socket, 't:close', {}); room = null; session = null; store.del('jq_teacher'); lastRecord = null;
+  if (!(await unsavedOk('방을 닫기'))) return;
+  await emit(socket, 't:close', {}); room = null; session = null; store.del('jq_teacher'); lastRecord = null; liveDraft.clear();
+  toast('방을 닫았어요. 서버에 남은 학생 정보는 모두 지워졌어요.', 3200);
   renderLibrary(); show('library');
 };
 
@@ -640,7 +669,20 @@ socket.on('connect', async () => {
 
 // 시작
 let serverModes = null;
-fetch('/api/info').then(r => r.json()).then(i => { info = i; serverModes = new Set((i.modes || []).map(m => m.id)); }).catch(() => {});
+// 무료 서버는 쉬다가 깨어나는 데 30초~1분 걸려요: 미리 깨우고 상태를 보여 줌
+async function wakeServer(tries = 0) {
+  const el = $('#srv-state');
+  try {
+    const i = await (await fetch(apiURL('/api/info'), { cache: 'no-store' })).json();
+    info = i; serverModes = new Set((i.modes || []).map(m => m.id));
+    if (el) { el.textContent = '🟢 서버 준비 완료'; el.className = 'srv ok'; }
+  } catch {
+    if (el) { el.textContent = tries ? `🟡 서버 깨우는 중… (${tries * 5}초)` : '🟡 서버 깨우는 중…'; el.className = 'srv wait'; }
+    if (tries < 30) setTimeout(() => wakeServer(tries + 1), 5000);
+    else if (el) { el.textContent = '🔴 서버에 연결할 수 없어요'; el.className = 'srv bad'; }
+  }
+}
+wakeServer();
 renderLibrary(); refreshFolder();
 window.addEventListener('beforeunload', e => { saveCurrent(); if (room?.state === 'play' || (lastRecord && !saved && log.length)) { e.preventDefault(); e.returnValue = ''; } });
 

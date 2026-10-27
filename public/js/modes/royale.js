@@ -19,10 +19,10 @@ for (const k of Object.keys(ICON)) {
   const im = new Image();
   im.addEventListener('load', () => { have[k] = true; });
   im.addEventListener('error', () => { have[k] = false; });
-  im.src = asset(`assets/icons/${k}.png`);
+  im.src = asset(`assets/icons/${k}.webp`);
 }
 const ico = (k, cls = '') => have[k]
-  ? `<img class="ry-ico ${cls}" src="${asset(`assets/icons/${k}.png`)}" alt="" data-fb="${ICON[k]}">`
+  ? `<img class="ry-ico ${cls}" src="${asset(`assets/icons/${k}.webp`)}" alt="" data-fb="${ICON[k]}">`
   : `<span class="ry-ico ${cls}" aria-hidden="true">${ICON[k]}</span>`;
 // 그림이 중간에 깨지면 이모지로 (CSP 때문에 onerror 대신 여기서)
 document.addEventListener('error', e => {
@@ -32,7 +32,7 @@ document.addEventListener('error', e => {
   }
 }, true);
 function heroArt() {
-  const wrap = h(`<div class="ry-hero"><img src="${asset('assets/modes/royale.png')}" alt=""></div>`);
+  const wrap = h(`<div class="ry-hero"><img src="${asset('assets/modes/royale.webp')}" alt=""></div>`);
   $('img', wrap).addEventListener('error', () => { wrap.innerHTML = `<div class="ry-hero-fb"><span>⚔️</span>${ico('hammer', 'swing')}</div>`; });
   return wrap;
 }

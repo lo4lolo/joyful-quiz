@@ -134,6 +134,7 @@ const mode = {
       const kind = String(d.kind);
       if (!ITEMS.includes(kind) || p.m.item !== kind) return ack({ error: 'noitem' });
       p.m.item = null;
+      api.event('item', p.pid, { kind });
       if (kind === 'banana') {
         const x = num(d.x, -3000, 3000) ?? p.m.x ?? 0, z = num(d.z, -3000, 3000) ?? p.m.z ?? 0;
         const b = { id: m.bseq++, x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10, by: p.m.k };
@@ -191,6 +192,8 @@ const mode = {
   tick(room, api) {
     const m = room.m; if (!m?.tr) return;
     const now = Date.now();
+    if (now - (m.lastSnap || 0) < 140) return; // 약 7Hz (학생 화면은 사이를 부드럽게 이어 줌)
+    m.lastSnap = now;
     const out = [];
     for (const p of room.players.values()) {
       const k = p.m; if (!k || !k.dirty || k.x === null) continue;

@@ -103,8 +103,8 @@ function info(room) {
 function board(room, api) {
   const now = Date.now(), all = list(room), teams = teamTotals(room);
   const total = all.reduce((s, x) => s + x.money, 0), left = room.m.endsAt - now;
-  api.toTeacher('tboard', { list: all, teams, total, left, goal: room.settings.goal });
-  api.toStudents('board', { top: all.slice(0, 5).map(({ pid, name, money, team }) => ({ pid, name, money, team })), order: all.map(x => x.pid), teams, total, left });
+  (api.toAllIfChanged || api.toAll)('tboard', { list: all, teams, total, left, goal: room.settings.goal }, { to: 'teacher' });
+  (api.toAllIfChanged || api.toAll)('board', { top: all.slice(0, 5).map(({ pid, name, money, team }) => ({ pid, name, money, team })), order: all.map(x => x.pid), teams, total, left }, { to: 'students' });
 }
 
 export default {
@@ -173,6 +173,7 @@ export default {
       if (data.level != null && (data.level | 0) !== lv + 1) return ack({ error: '이미 샀어요', state: state(room, p, now) }); // 두 번 누름
       const price = T.p[lv];
       if (m.money < price) return ack({ error: `돈이 ${(price - m.money).toLocaleString()}원 모자라요` });
+      api.event('buy', p.pid, { item: k, level: lv + 1, price, moneyBefore: m.money });
       setMoney(p, m.money - price); m.spent += price; m.lv[k] = lv + 1; m.buys++;
       const level = lv + 1, v = T.v[level];
       const what = k === 'mult' ? `×${v} 배수` : k === 'perQ' ? `문제당 ${v.toLocaleString()}원` : k === 'streak' ? `연속 보너스 +${v.toLocaleString()}원` : `보험 ${v}%`;

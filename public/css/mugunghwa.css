@@ -84,7 +84,7 @@
 
 /* ---------- 학생 ---------- */
 .mg-s { max-width: 1240px; margin: 0 auto; padding: 10px 10px 84px; display: flex; flex-direction: column; gap: 10px; }
-.mg-strip { margin: 0; padding: 8px 12px 6px; background: url(../assets/trad/hanji.jpg) center/cover, #FFF8EC; }
+.mg-strip { margin: 0; padding: 8px 12px 6px; background: url(../assets/trad/hanji.webp) center/cover, #FFF8EC; }
 .mg-striphead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .mg-title { font-family: var(--display); font-weight: 400; font-size: 19px; }
 .mg-striphead .pill { font-size: 17px; padding: 3px 12px 1px; }
@@ -182,7 +182,7 @@
 .mg-ttime { font-size: 32px; padding: 5px 18px 2px; } .mg-ttime b { font-weight: 400; }
 .mg-ttime.hurry { background: var(--coral); color: #fff; animation: mg-peek 1s infinite; }
 .mg-stage { --tok: clamp(42px, 7.4vh, 84px); margin: 0; min-height: 0; padding: 12px 16px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; overflow: hidden; border-width: 4px;
-  background: url(../assets/trad/bg_madang.jpg) center/cover, linear-gradient(180deg, #BFE6FF 0, #E6F5FF 30%, #EAD9B6 31%, #DDC597 100%); transition: box-shadow .25s; }
+  background: url(../assets/trad/bg_madang.webp) center/cover, linear-gradient(180deg, #BFE6FF 0, #E6F5FF 30%, #EAD9B6 31%, #DDC597 100%); transition: box-shadow .25s; }
 .mg-stage.green { box-shadow: 0 0 0 7px var(--mg-green), var(--hard); }
 .mg-stage.red { box-shadow: 0 0 0 7px var(--mg-red), var(--hard); }
 .mg-chantbar { position: relative; display: flex; justify-content: center; min-height: 0; }
@@ -232,7 +232,7 @@
 
 /* ---------- 결과 덮개 ---------- */
 .mg-over { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 16px; background: rgba(27,42,74,.5); animation: fadein .2s; }
-.mg-overcard { text-align: center; max-width: 680px; width: 100%; margin: 0; transform: rotate(-1deg); animation: pop .3s; background: url(../assets/trad/hanji.jpg) center/cover, #FFF8EC; }
+.mg-overcard { text-align: center; max-width: 680px; width: 100%; margin: 0; transform: rotate(-1deg); animation: pop .3s; background: url(../assets/trad/hanji.webp) center/cover, #FFF8EC; }
 .mg-overcard.win { background: var(--lemon); }
 .mg-overcard .em { font-size: 84px; line-height: 1.1; }
 .mg-overcard h2 { justify-content: center; font-size: clamp(28px, 6vw, 46px); margin: 6px 0; }

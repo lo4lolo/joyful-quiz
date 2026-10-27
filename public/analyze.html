@@ -21,12 +21,13 @@
 </header>
 
 <main class="wrap">
+  <p class="an-motto"><span>🧒 아이들은 <b>즐겁게</b> 퀴즈를 풀고,</span> <span>🧑‍🏫 선생님은 <b class="hl">깊이 있게</b> 분석해요.</span></p>
   <p class="an-lock"><span>🔒 이 화면의 기록은 이 컴퓨터에서만 열려요 (서버로 보내지 않아요)</span></p>
 
   <!-- 기록 열기 -->
   <section class="card an-open" id="open-card">
     <h2>📂 수업 기록을 열어 볼까요?</h2>
-    <p class="muted an-lead">퀴즈가 끝나면 선생님 컴퓨터에 저장된 <b>기록 파일(.json)</b>을 열면 돼요. 여러 개를 한꺼번에 열면 같은 학생·같은 문제끼리 모아서 단원 전체를 볼 수 있어요.</p>
+    <p class="muted an-lead">퀴즈가 끝나면 선생님 컴퓨터에 저장된 <b>기록 파일(.json)</b>을 열면 돼요. 정답·오답뿐 아니라 <b>빠르기, 다시 만난 문제, 게임 흐름, 모둠 협력</b>까지 보여 드려요. 여러 개를 한꺼번에 열면 같은 학생·같은 문제끼리 모아서 단원 전체를 볼 수 있어요.</p>
     <div class="an-drop" id="drop">
       <div class="an-drop-ico">📄</div>
       <div class="an-drop-txt">기록 파일을 여기로 끌어다 놓거나</div>
@@ -44,7 +45,7 @@
   <div id="report" hidden>
     <nav class="an-nav" id="an-nav" aria-label="분석 바로가기">
       <a href="#sec-summary">한눈에</a><a href="#sec-top">다시 가르칠 문제</a><a href="#sec-q">문항 분석</a><a href="#sec-s">학생 분석</a>
-      <a href="#sec-heat">학생×문항</a><a href="#sec-cmp">차시 비교</a><a href="#sec-coop" id="nav-coop" hidden>🤝 모둠 협력</a><a href="#sec-ai">🤖 AI 도움</a><a href="#sec-plan">수업 설계</a>
+      <a href="#sec-heat">학생×문항</a><a href="#sec-cmp">차시 비교</a><a href="#sec-behav" id="nav-behav" hidden>🎮 학습 행동</a><a href="#sec-coop" id="nav-coop" hidden>🤝 모둠 협력</a><a href="#sec-ai">🤖 AI 도움</a><a href="#sec-plan">수업 설계</a>
       <button class="chip an-hide" id="btn-hide" type="button" aria-pressed="false" title="화면에 띄울 때 학생 이름을 가려요">🙈 이름 가리기</button>
     </nav>
 
@@ -111,6 +112,8 @@
     </section>
 
     <section class="card" id="sec-cmp"></section>
+
+    <section class="card" id="sec-behav" hidden></section>
 
     <section class="card" id="sec-coop" hidden></section>
 

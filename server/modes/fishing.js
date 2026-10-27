@@ -212,6 +212,7 @@ export default {
     if (type === 'reel') {
       if (!m.hook) return ack({ error: '감을 물고기가 없어요' });
       const res = land(room, p, String(data.quality || ''), api);
+      api.event('reel', p.pid, { quality: ['perfect', 'good'].includes(data.quality) ? data.quality : 'miss', rarity: res?.rarity || null });
       return ack({ ok: true, res, lure: m.lure, xp: m.xp, dex: m.dex });
     }
     if (type === 'state') return ack({ ok: true, ...this.snapshot(room, p) });
@@ -246,7 +247,7 @@ export default {
       if (M.nextEv + dur + 5000 < M.endsAt) scheduleEvent(room, kind, Math.max(now + 1000, M.nextEv), api);
       else M.nextEv = Infinity; // 끝나기 직전에는 이벤트 없음
     }
-    if (now - M.lastBoard > (M.dirty ? 1000 : 3000)) { M.lastBoard = now; M.dirty = false; api.toAll('board', board(room)); }
+    if (now - M.lastBoard > (M.dirty ? 1000 : 3000)) { M.lastBoard = now; M.dirty = false; (api.toAllIfChanged || api.toAll)('board', board(room)); }
   },
   ranking(room) {
     const list = standings(room).map(s => ({ pid: s.pid, name: s.name, score: s.kg,

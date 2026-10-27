@@ -159,3 +159,8 @@ body.playing .rail, body.lobbying .rail { display: none; }
 .reflect-sum { margin-top: 12px; } .reflect-sum h3 { margin: 0 0 6px; font-size: 19px; }
 #r-coop-private { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 @media (max-width: 1180px) { .result-grid { grid-template-columns: 1fr; } }
+.motto { background: #fff; border: 3px solid var(--ink); border-radius: 18px; box-shadow: var(--hard); padding: 14px 18px 10px; margin-bottom: 18px; transform: rotate(-.4deg); }
+.motto-main { font-size: clamp(22px, 2.6vw, 30px); margin: 0 0 4px; line-height: 1.35; }
+.motto p.muted { margin: 0; font-size: 14.5px; }
+.srv { font-size: 13px; padding: 4px 8px; margin: 0 0 6px; border-radius: 8px; background: rgba(255,255,255,.08); }
+.srv.ok { color: #9ff0cf; } .srv.wait { color: var(--lemon); } .srv.bad { color: #ffb3aa; }

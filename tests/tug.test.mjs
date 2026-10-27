@@ -212,6 +212,8 @@ test('자동 영차 · 기수가 나가면 다음 친구 · 다시 접속 스냅
   const g = T1.gisu, gs = g === someone.pid ? s2 : bot(g);
   gs.close();
   await until(() => T1.gisu && T1.gisu !== g);
+  // 'role' 이벤트는 서버 상태가 바뀐 직후 교사 소켓으로 날아오므로 도착을 기다린다
+  await until(() => t.evts.some(e => e.type === 'role' && e.data.reason === 'away' && e.pid === T1.gisu));
   assert.ok(t.evts.some(e => e.type === 'role' && e.data.reason === 'away' && e.pid === T1.gisu));
   assert.ok(r0.players.get(T1.gisu).online);
   await call(t, 't:end', {});

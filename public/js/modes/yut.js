@@ -52,7 +52,7 @@ const DK_SVG = `<svg class="yt-dkface" viewBox="0 0 64 64" aria-hidden="true">
 
 // 모둠 문장 (그림이 없으면 이모지)
 function emblem(T, cls = '') {
-  return `<span class="yt-emb ${cls}" style="--tc:${esc(T.color)}"><img src="assets/trad/team_${esc(T.id)}.png" alt="" draggable="false"><b>${esc(T.emoji)}</b></span>`;
+  return `<span class="yt-emb ${cls}" style="--tc:${esc(T.color)}"><img src="assets/trad/team_${esc(T.id)}.webp" alt="" draggable="false"><b>${esc(T.emoji)}</b></span>`;
 }
 function wireImgs(root) {
   $$('img', root).forEach(img => {
@@ -66,15 +66,15 @@ function wireImgs(root) {
 // 윷가락 4개: 평평한 면(배)이 위면 셈. 0번 가락에 백도 표시
 function sticksHTML(sticks = [true, true, false, false], toss = false) {
   return `<div class="yt-sticks ${toss ? 'toss' : ''}">${sticks.map((up, i) => `<div class="yt-stick ${up ? 'up' : 'down'} ${i === 0 ? 'mark' : ''}" style="--d:${i * 70}ms;--end:${(up ? 1080 : 1260) + i * 360}deg;--r:${[-8, 4, -3, 7][i]}deg">
-    <div class="yt-spin"><div class="f"><img src="assets/trad/${i === 0 ? 'yut_backdo' : 'yut_front'}.png" alt="" draggable="false"><i></i><i></i><i></i>${i === 0 ? '<em>백</em>' : ''}</div>
-    <div class="b"><img src="assets/trad/yut_back.png" alt="" draggable="false"></div></div></div>`).join('')}</div>`;
+    <div class="yt-spin"><div class="f"><img src="assets/trad/${i === 0 ? 'yut_backdo' : 'yut_front'}.webp" alt="" draggable="false"><i></i><i></i><i></i>${i === 0 ? '<em>백</em>' : ''}</div>
+    <div class="b"><img src="assets/trad/yut_back.webp" alt="" draggable="false"></div></div></div>`).join('')}</div>`;
 }
 const resultText = (key, asDo) => asDo ? '백도 → 도처럼 한 칸!' : key === 'backdo' ? '백도! 한 칸 뒤로' : `${NAME[key]}! ${STEPS[key]}칸${key === 'yut' || key === 'mo' ? ' · 한 번 더!' : ''}`;
 const stName = st => (st === S ? '출발 전' : st === H ? '집' : LABEL[st] && st !== 0 ? `${LABEL[st]}(${st}번 칸)` : `${st}번 칸`);
 
 // ---------- 윷판 화면 (말 그리기·움직이기) ----------
 function makeBoard(host, { big = false, mine = null } = {}) {
-  host.innerHTML = `<div class="yt-board ${big ? 'big' : ''}"><img class="yt-bimg" src="assets/trad/yut_board.png" alt="" draggable="false">${boardSVG()}<div class="yt-trail"></div><div class="yt-layer"></div></div>`;
+  host.innerHTML = `<div class="yt-board ${big ? 'big' : ''}"><img class="yt-bimg" src="assets/trad/yut_board.webp" alt="" draggable="false">${boardSVG()}<div class="yt-trail"></div><div class="yt-layer"></div></div>`;
   const board = $('.yt-board', host), layer = $('.yt-layer', board), trailBox = $('.yt-trail', board);
   { const bi = $('.yt-bimg', board); onImgFail(bi, i => i.remove()); if (bi.complete && bi.naturalWidth) board.classList.add('img'); else bi.addEventListener('load', () => board.classList.add('img'), { once: true }); }
   const toks = new Map();

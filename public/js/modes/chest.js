@@ -3,7 +3,7 @@ import { $, $$, esc, h, avatarHTML, fmtSec, pct, sleep, confetti } from '../comm
 
 let cssDone = false;
 const css = () => { if (!cssDone) { cssDone = true; document.head.append(h('<link rel="stylesheet" href="css/chest.css">')); } };
-const IMG = ['assets/img/chest_wood.png', 'assets/img/chest_silver.png', 'assets/img/chest_gold.png'];
+const IMG = ['assets/img/chest_wood.webp', 'assets/img/chest_silver.webp', 'assets/img/chest_gold.webp'];
 const chestImg = (i, cls = '') => `<span class="chest-img ${cls}"><img src="${IMG[i % 3]}" alt="" draggable="false"><em>🎁</em></span>`;
 // 그림 파일이 없으면 이모지로
 const fixImgs = el => $$('img', el).forEach(img => img.addEventListener('error', () => img.parentElement.classList.add('noimg'), { once: true }));

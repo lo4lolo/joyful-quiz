@@ -7,6 +7,7 @@ import {
 import {
   analyze, studentDetail, anonymizer, scrubNames, modeLabel, MODE_INFO, dateText, secText, NO_ANSWER, sortSessions,
   coopAnalysis, COOP, REFLECT, ALERT_KIND, resultText, extraText,
+  behaviorAnalysis, behaviorInsights, QUAD, KIND_LABEL, DEV_LABEL,
 } from './stats.js';
 
 // ---------- 상태 ----------
@@ -49,7 +50,7 @@ async function openFiles(files) {
 async function openSamples() {
   try {
     const list = [];
-    for (const n of [1, 2, 3]) {
+    for (const n of [1, 2, 3, 4]) {
       const res = await fetch(`samples/sample-record-${n}.json`, { cache: 'no-store' }); // 이 앱에 들어 있는 예시 파일
       if (!res.ok) throw new Error('예시 파일이 없어요');
       list.push(...recordsFromJSON(await res.json()));
@@ -147,13 +148,15 @@ function render() {
     S.A = null;
     for (const id of ['#sec-summary', '#sec-top', '#q-list', '#s-groups', '#s-scatter', '#s-table', '#heat', '#sec-cmp', '#sec-coop']) $(id).innerHTML = '';
     S.C = null; $('#sec-coop').hidden = true; $('#nav-coop').hidden = true;
+    S.B = null; $('#sec-behav').innerHTML = ''; $('#sec-behav').hidden = true; $('#nav-behav').hidden = true;
     $('#sec-summary').innerHTML = '<div class="card an-empty">✅ 위 목록에서 분석할 기록을 하나 이상 골라 주세요.</div>';
     return;
   }
   S.A = analyze(recs);
   S.C = coopAnalysis(recs);
+  S.B = behaviorAnalysis(recs, { ds: S.A.ds });
   anon = anonymizer([...S.A.ds.students].map(s => s.name).sort((a, b) => a.localeCompare(b, 'ko', { numeric: true })));
-  renderSummary(); renderTop(); renderQuestions(); renderStudents(); renderHeat(); renderCompare(); renderCoop(); renderAiTypes();
+  renderSummary(); renderTop(); renderQuestions(); renderStudents(); renderHeat(); renderCompare(); renderBehavior(); renderCoop(); renderAiTypes();
 }
 
 function renderSessions() {
@@ -485,6 +488,148 @@ function renderCoop() {
   $$('.co-ses .chip', box).forEach(b => b.onclick = () => { S.coopIdx = +b.dataset.i; renderCoop(); });
   $$('[data-stu]', box).forEach(b => b.onclick = () => openStudent(b.dataset.stu));
 }
+// ---------- 게임 속 학습 행동 ----------
+const QC = { fastOk: '#2a78d6', slowOk: '#1baf7a', slowWrong: '#4a3aa7', fastWrong: '#eb6834' };
+const QTXT = { fastOk: '#fff', slowOk: '#1B2A4A', slowWrong: '#fff', fastWrong: '#1B2A4A' };
+const pp = x => (x == null ? '-' : `${Math.round(x * 100)}%`);
+const pDiff = d => (d == null ? '-' : `${d >= 0 ? '+' : ''}${Math.round(d * 100)}%p`);
+// 4분면 100% 누적 막대
+function quadBar(q, label, h = 22) {
+  if (!q.n) return '<span class="muted small">-</span>';
+  let x = 0, g = '';
+  for (const Q of QUAD) {
+    const n = q[Q.k]; if (!n) continue;
+    const w = (n / q.n) * 100;
+    g += `<g data-tip="${esc(`${label}\n${Q.icon} ${Q.label}(${Q.sub}): ${n}개 (${pp(n / q.n)})`)}"><rect x="${x}%" width="${w}%" height="${h}" fill="${QC[Q.k]}"/>${w >= 12 ? `<text x="${x + w / 2}%" y="${h / 2 + 5}" text-anchor="middle" class="be-seg" fill="${QTXT[Q.k]}">${Math.round(w)}</text>` : ''}</g><rect x="${x + w}%" width="2" height="${h}" fill="#fff"/>`;
+    x += w;
+  }
+  return `<svg class="be-qbar" width="100%" height="${h}" role="img" aria-label="${esc(label)}: ${QUAD.map(Q => `${Q.label} ${q[Q.k]}`).join(', ')}">${g}</svg>`;
+}
+// 가로 막대 한 줄 (정답률 등)
+function hbar(r, color, label) {
+  const w = Math.max(0, Math.min(1, r ?? 0)) * 100;
+  return `<svg class="be-hbar" width="100%" height="18" role="img" aria-label="${esc(label)}"><rect width="100%" height="18" rx="5" fill="#F1F6FF" stroke="#D6E2F2"/>${w ? `<rect width="${w}%" height="18" rx="5" fill="${color}" stroke="#1B2A4A" stroke-width="2"/>` : ''}</svg>`;
+}
+function renderBehavior() {
+  const box = $('#sec-behav'), B = S.B;
+  if (!B?.n) { box.innerHTML = ''; box.hidden = true; $('#nav-behav').hidden = true; return; }
+  box.hidden = false; $('#nav-behav').hidden = false;
+  const ins = behaviorInsights(B);
+  const sName = new Map(B.students.map(s => [s.key, s.name]));
+  const chips = keys => keys.map(k => `<button class="an-pchip" data-stu="${esc(sName.get(k) || k)}" type="button">${esc(nm(sName.get(k) || k))}</button>`).join('');
+  const q = B.quad, qs = B.quadShare;
+  const cell = Q => `<div class="be-cell ${Q.k}" data-tip="${esc(`${Q.label}(${Q.sub})\n${q[Q.k]}개 · ${pp(qs[Q.k])}`)}"><span class="be-ci">${Q.icon}</span><b>${pp(qs[Q.k])}</b><span>${Q.label}</span><small>${Q.sub} · ${fmtN(q[Q.k])}개</small></div>`;
+  const byK = Object.fromEntries(QUAD.map(Q => [Q.k, Q]));
+  const fastWrongQs = [...B.questions].filter(x => x.quad.n >= 5).sort((a, b) => b.quadShare.fastWrong - a.quadShare.fastWrong).slice(0, 3).filter(x => x.quadShare.fastWrong >= 0.15);
+  // 다시 만난 문제
+  const recQ = [...B.questions].filter(x => x.retry.recovered > 0).sort((a, b) => b.retry.recovered - a.retry.recovered || (b.retry.gain ?? 0) - (a.retry.gain ?? 0)).slice(0, 6);
+  // 흐름 막대 (초반·중반·후반)
+  const TH = ['초반', '중반', '후반'];
+  const flow = B.thirds.map((t, i) => `<div class="be-third"><span>${TH[i]}</span>${hbar(t.acc, i === 2 && B.thirds[0].acc - t.acc >= B.opt.fatigueDrop ? '#eb6834' : '#2a78d6', `${TH[i]} 정답률 ${pp(t.acc)}`)}<b>${pp(t.acc)}</b><small>${secText(t.medMs)}</small></div>`).join('');
+  const kinds = Object.entries(B.kinds).filter(([k, v]) => KIND_LABEL[k] && v.n);
+  const devs = Object.entries(B.devs);
+  const g = B.games, gameCards = [];
+  const gc = (icon, title, body, hint) => `<div class="be-game"><h4>${icon} ${title}</h4><p>${body}</p><p class="be-hint">🧑‍🏫 ${hint}</p></div>`;
+  if (g.caught.n) gameCards.push(gc('🌸', '무궁화 들킴', `들킴 <b>${g.caught.n}</b>번 · ${Object.keys(g.caught.by).length}명`, '자주 들킨 친구는 마음이 급했을 수 있어요. ‘멈춰서 숨 한 번’ 신호를 함께 연습해요.'));
+  if (g.chest.n) gameCards.push(gc('🎁', '보물 상자', `위험한 결과(뺏기·바꾸기·잃기·배수) <b>${pp(g.chest.risky / g.chest.n)}</b> (${g.chest.risky}/${g.chest.n})`, '운이 크게 갈린 판이에요. 결과보다 “어떤 문제를 맞혀 상자를 열었는지”를 칭찬해 주세요.'));
+  if (g.buy.n) {
+    const items = Object.entries(g.buy.items).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${ITEM_LABEL[k] || k} ${v}`).join(' · ');
+    gameCards.push(gc('💰', '퀴즈 부자 소비', `구매 <b>${g.buy.n}</b>번 · 첫 구매 중간값 <b>${Math.round(g.buy.firstMed ?? 0)}초</b><br><small>${esc(items)}</small>`, '일찍 사서 키우는 친구, 모았다가 쓰는 친구가 있어요. 왜 그렇게 골랐는지 물어보면 계획 세우기 이야기로 이어져요.'));
+  }
+  if (g.reel.n) gameCards.push(gc('🎣', '낚시 타이밍', `완벽 <b>${pp(g.reel.perfect / g.reel.n)}</b> · 좋음 ${pp(g.reel.good / g.reel.n)} · 놓침 ${pp(g.reel.miss / g.reel.n)}`, '타이밍은 손놀림이라 정답과는 따로 봐 주세요. 놓침이 많아도 문제를 맞힌 것은 칭찬해요.'));
+  if (g.claim.n) gameCards.push(gc('🗺️', '땅따먹기', `공격 <b>${pp(g.claim.enemy / g.claim.n)}</b> · 확장 ${pp(1 - g.claim.enemy / g.claim.n)}${g.claim.star ? ` · 별 칸 ${g.claim.star}` : ''}`, '공격이 많으면 경쟁이 뜨거웠던 판이에요. 다음엔 ‘우리 땅 넓히기’ 목표를 함께 정해 보세요.'));
+  if (g.item.n) gameCards.push(gc('🏎️', '카트 아이템', `${g.item.n}번 · ${esc(Object.entries(g.item.kinds).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${ITEM_LABEL[k] || k} ${v}`).join(' · '))}`, '아이템은 정답의 보상이에요. 문제를 맞혀야 쓸 수 있다는 점을 다시 짚어 주세요.'));
+  if (g.duel.n) gameCards.push(gc('🔨', '뿅망치 대결', `이김 ${g.duel.win + g.duel.ghostWin} · 짐 ${g.duel.lose + g.duel.ghostLose} · 무승부 ${g.duel.double} · 정답 <b>${pp(g.duel.ok / g.duel.n)}</b> · 중간 ${secText(g.duel.medMs)}`, '빠르기 겨루기라 서두르기 쉬워요. 이긴 친구에게 “어떻게 알았어?”를 물어 생각을 나눠 보세요.'));
+  if (g.route.short + g.route.long) gameCards.push(gc('🎲', '윷 갈림길', `지름길 <b>${g.route.short}</b> · 긴 길 ${g.route.long}`, '모둠이 어떤 이유로 길을 골랐는지 말해 보게 하면 의논하는 힘이 자라요.'));
+  // 학생 표
+  const rowsHTML = B.students.map(s => {
+    const notes = [s.fastWrongFlag ? '<span class="badge y">💨 서두름</span>' : '', s.fatigueFlag ? '<span class="badge y">📉 후반 지침</span>' : '',
+      s.n >= B.opt.minAnswers && s.skipRate >= 0.2 ? '<span class="badge y">⏳ 건너뜀</span>' : '', s.retry.recovered >= 3 && s.retry.recovered / s.retry.chances >= 0.6 ? '<span class="badge g">🔁 다시 맞힘</span>' : '',
+      s.top === 'fastOk' && s.quad.n >= B.opt.minAnswers ? '<span class="badge b">⚡ 숙달</span>' : ''].join('');
+    return `<tr><td><button class="linkish an-sname" data-stu="${esc(s.name)}" type="button">${esc(nm(s.name))}</button></td><td class="num">${s.n}</td>
+      <td class="be-colq">${quadBar(s.quad, nm(s.name))}</td><td class="num">${s.retry.chances ? `${s.retry.recovered}/${s.retry.chances}` : '-'}</td>
+      <td class="num">${pp(s.thirds[0].acc)} → ${pp(s.thirds[2].acc)}</td><td class="num">${pp(s.afterWrong)}</td><td class="num">${s.longest}</td><td class="num">${pp(s.skipRate)}</td><td>${notes}</td></tr>`;
+  }).join('');
+  box.innerHTML = `<h2>🎮 게임 속 학습 행동 <span class="badge">정답·오답 너머</span></h2>
+    <p class="an-lead small">아이들이 <b>어떻게</b> 풀었는지 봐요: 빠르기, 다시 만난 문제, 게임 흐름, 틀린 뒤 회복, 게임 속 선택. 빠름·느림은 <b>문제마다 중간 응답 시간</b>으로 나눠서 쉬운 문제·어려운 문제 모두 공평하게 봐요.</p>
+    <div class="be-ins">${ins.map(x => `<div class="be-in ${x.level}"><h4>${x.icon} ${esc(x.title)}</h4><p>${esc(x.text)}</p><p class="be-hint">🧑‍🏫 <b>수업에 쓰는 법</b> ${esc(x.hint)}</p></div>`).join('')}</div>
+
+    <h3>⏱️ 속도 × 정확도 4분면 <small class="muted sys">(건너뜀 제외 ${fmtN(q.n)}개 답)</small></h3>
+    <div class="be-quadwrap">
+      <div class="be-quad" role="img" aria-label="속도와 정확도 4분면">
+        <span class="be-ax be-ax-x">← 빠름 · 느림 → (위: 맞음 · 아래: 틀림)</span>
+        ${cell(byK.fastOk)}${cell(byK.slowOk)}${cell(byK.fastWrong)}${cell(byK.slowWrong)}
+      </div>
+      <div class="be-side">
+        <p class="small sys"><b>💨 빠르게 틀림이 ${pp(B.opt.fastWrong)} 넘는 학생</b> <small class="muted">(답 ${B.opt.minAnswers}개 이상)</small></p>
+        <div class="an-pchips">${B.flags.fastWrong.length ? chips(B.flags.fastWrong) : '<span class="muted small">없어요 👏</span>'}</div>
+        ${fastWrongQs.length ? `<p class="small sys"><b>빠르게 틀린 답이 많은 문제</b></p><ul class="be-list">${fastWrongQs.map(x => `<li><b>${x.no}.</b> ${esc(cut(x.q, 40))} <span class="muted">${pp(x.quadShare.fastWrong)}</span></li>`).join('')}</ul>` : ''}
+        <p class="small muted sys">‘빠르게 틀림’은 찍기나 서두름일 수도, 헷갈리는 보기 때문일 수도 있어요. 아이에게 이유를 먼저 물어봐 주세요.</p>
+      </div>
+    </div>
+
+    <div class="be-grid">
+      <div class="co-panel"><h3>🔁 다시 만난 문제</h3>
+        ${B.retry.laterN ? `<div class="be-third"><span>처음</span>${hbar(B.retry.firstAcc, '#a3a6c2', `처음 만남 ${pp(B.retry.firstAcc)}`)}<b>${pp(B.retry.firstAcc)}</b><small>${fmtN(B.retry.firstN)}개</small></div>
+        <div class="be-third"><span>다시</span>${hbar(B.retry.laterAcc, '#5b3bd6', `다시 만남 ${pp(B.retry.laterAcc)}`)}<b>${pp(B.retry.laterAcc)}</b><small>${fmtN(B.retry.laterN)}개</small></div>
+        <p class="small sys">재도전 향상 <b>${pDiff(B.retry.gain)}</b> · 처음 틀린 문제 ${B.retry.chances}개 중 <b>${B.retry.recovered}</b>개를 다시 만나 맞혔어요.</p>
+        ${recQ.length ? `<p class="small sys"><b>다시 만나서 맞힌 문제</b></p><ul class="be-list">${recQ.map(x => `<li data-tip="${esc(`${x.no}. ${x.q}\n다시 맞힌 학생: ${x.recoveredBy.map(nm).join(', ')}`)}"><b>${x.no}.</b> ${esc(cut(x.q, 34))} <span class="badge g">${x.retry.recovered}명</span> <span class="muted">${pp(x.retry.firstAcc)} → ${pp(x.retry.laterAcc)}</span></li>`).join('')}</ul>` : ''}`
+        : '<p class="an-empty">이번 기록에서는 같은 문제를 다시 만난 경우가 없어요. (보물 상자·카트 레이스처럼 문제가 돌아오는 게임에서 보여요)</p>'}
+      </div>
+      <div class="co-panel"><h3>📈 게임 흐름</h3>${flow}
+        <p class="small sys">초반 → 후반 정답률 ${pDiff((B.thirds[2].acc ?? 0) - (B.thirds[0].acc ?? 0))}${B.flags.fatigue.length ? ` · 후반에 ${pp(B.opt.fatigueDrop)}p 넘게 떨어진 학생 ${B.flags.fatigue.length}명` : ''}</p>
+        ${B.flags.fatigue.length ? `<div class="an-pchips">${chips(B.flags.fatigue)}</div>` : ''}
+        <p class="small muted sys">학생마다 자기 답 순서를 셋으로 나눴어요 (답 6개 이상).</p>
+      </div>
+      <div class="co-panel"><h3>🌱 틀린 뒤 회복</h3>
+        <div class="be-third"><span>틀린 뒤</span>${hbar(B.flow.afterWrong, '#eb6834', `틀린 바로 다음 ${pp(B.flow.afterWrong)}`)}<b>${pp(B.flow.afterWrong)}</b><small>${fmtN(B.flow.afterWrongN)}번</small></div>
+        <div class="be-third"><span>맞힌 뒤</span>${hbar(B.flow.afterOk, '#2a78d6', `맞힌 바로 다음 ${pp(B.flow.afterOk)}`)}<b>${pp(B.flow.afterOk)}</b><small>${fmtN(B.flow.afterOkN)}번</small></div>
+        <div class="be-third"><span>전체</span>${hbar(B.overallAcc, '#a3a6c2', `전체 ${pp(B.overallAcc)}`)}<b>${pp(B.overallAcc)}</b><small></small></div>
+        <p class="small sys">가장 긴 연속 정답 <b>${B.flow.longest}</b>개</p>
+      </div>
+      <div class="co-panel"><h3>⏳ 건너뜀 · 문제 모양 · 기기</h3>
+        <p class="small sys">시간 초과·빈칸 <b>${pp(B.skip.rate)}</b> (${fmtN(B.skip.n)}개)${B.flags.skip.length ? ` · 20% 넘게 건너뛴 학생 ${B.flags.skip.length}명` : ''}</p>
+        ${B.flags.skip.length ? `<div class="an-pchips">${chips(B.flags.skip)}</div>` : ''}
+        ${kinds.map(([k, v]) => `<div class="be-third"><span>${KIND_LABEL[k]}</span>${hbar(v.acc, '#2a78d6', `${KIND_LABEL[k]} ${pp(v.acc)}`)}<b>${pp(v.acc)}</b><small>${fmtN(v.n)}개</small></div>`).join('')}
+        ${devs.length ? devs.map(([k, v]) => `<div class="be-third"><span>${DEV_LABEL[k] || k}</span>${hbar(v.acc, '#1baf7a', `${DEV_LABEL[k] || k} ${pp(v.acc)}`)}<b>${pp(v.acc)}</b><small>${fmtN(v.n)}개</small></div>`).join('') + '<p class="small muted sys">태블릿은 단답형 문제를 보기(선택형)로 받아요. 기기 차이는 문제 모양 차이일 수 있어요.</p>' : ''}
+      </div>
+    </div>
+
+    ${gameCards.length ? `<h3>🕹️ 게임별 행동</h3><div class="be-games">${gameCards.join('')}</div>` : ''}
+
+    <h3>🧒 학생별 학습 행동 <small class="muted sys">이름을 누르면 문제별 답을 볼 수 있어요</small></h3>
+    <div class="an-legend">${QUAD.map(Q => `<i class="lg" data-q="${Q.k}"></i>${Q.icon} ${Q.label}`).join(' ')}</div>
+    <div class="an-tblwrap"><table class="tbl be-tbl"><thead><tr><th>이름</th><th class="num">응답</th><th>속도 × 정확도 (%)</th><th class="num">다시 맞힘</th><th class="num">초반 → 후반</th><th class="num">틀린 뒤</th><th class="num">최장 연속</th><th class="num">건너뜀</th><th>살펴볼 점</th></tr></thead><tbody>${rowsHTML}</tbody></table></div>
+    <p class="small muted sys">‘살펴볼 점’은 낙인이 아니라 말 걸기의 실마리예요. 한 판의 기록만으로 아이를 판단하지 말아 주세요.</p>
+    <div class="row an-tools"><span class="grow"></span><button class="btn grape" data-ai="behav" type="button">🤖 게임 속 학습 행동 돌아보기 프롬프트 만들기</button></div>`;
+  $$('[data-stu]', box).forEach(b => b.onclick = () => openStudent(b.dataset.stu));
+}
+const ITEM_LABEL = { perQ: '문제당 돈 업그레이드', double: '2배 타임', shield: '방패', gift: '깜짝 선물', cheer: '팀 응원', boost: '부스터', banana: '바나나', star: '별' };
+function behavPromptLines() {
+  const B = S.B; if (!B?.n) return ['[게임 속 학습 행동 기록 없음]'];
+  const L = ['[게임 속 학습 행동] (학생 이름 없이 반 전체 통계만)',
+    `- 속도×정확도(문제마다 중간 응답 시간 기준): 빠르고 정확 ${pp(B.quadShare.fastOk)}, 느리지만 정확 ${pp(B.quadShare.slowOk)}, 느리고 틀림 ${pp(B.quadShare.slowWrong)}, 빠르게 틀림 ${pp(B.quadShare.fastWrong)} (빠르게 틀림 30% 넘는 학생 ${B.flags.fastWrong.length}명)`];
+  if (B.retry.laterN) L.push(`- 다시 만난 문제: 처음 정답률 ${pp(B.retry.firstAcc)} → 다시 만났을 때 ${pp(B.retry.laterAcc)} (${pDiff(B.retry.gain)}), 처음 틀린 ${B.retry.chances}개 중 ${B.retry.recovered}개를 다시 맞힘`);
+  L.push(`- 게임 흐름: 초반 ${pp(B.thirds[0].acc)} → 중반 ${pp(B.thirds[1].acc)} → 후반 ${pp(B.thirds[2].acc)} (후반에 15%p 넘게 떨어진 학생 ${B.flags.fatigue.length}명)`);
+  L.push(`- 틀린 바로 다음 정답률 ${pp(B.flow.afterWrong)}, 맞힌 다음 ${pp(B.flow.afterOk)}, 전체 ${pp(B.overallAcc)}`);
+  L.push(`- 건너뜀·시간 초과 ${pp(B.skip.rate)}`);
+  const kinds = Object.entries(B.kinds).filter(([k, v]) => KIND_LABEL[k] && v.n);
+  if (kinds.length) L.push(`- 문제 모양별 정답률: ${kinds.map(([k, v]) => `${KIND_LABEL[k]} ${pp(v.acc)}`).join(', ')}`);
+  const hard = [...B.questions].filter(x => x.quad.n >= 5).sort((a, b) => b.quadShare.fastWrong - a.quadShare.fastWrong).slice(0, 3);
+  if (hard.length) L.push(`- 빠르게 틀린 답이 많은 문제: ${hard.map(x => `"${cut(x.q, 30)}"(${pp(x.quadShare.fastWrong)})`).join(', ')}`);
+  const g = B.games, gl = [];
+  if (g.caught.n) gl.push(`무궁화 들킴 ${g.caught.n}번`);
+  if (g.chest.n) gl.push(`보물 상자 위험 결과 ${pp(g.chest.risky / g.chest.n)}`);
+  if (g.buy.n) gl.push(`퀴즈 부자 구매 ${g.buy.n}번(첫 구매 중간값 ${Math.round(g.buy.firstMed ?? 0)}초)`);
+  if (g.reel.n) gl.push(`낚시 완벽 타이밍 ${pp(g.reel.perfect / g.reel.n)}`);
+  if (g.claim.n) gl.push(`땅따먹기 공격 비율 ${pp(g.claim.enemy / g.claim.n)}`);
+  if (g.duel.n) gl.push(`뿅망치 대결 정답 ${pp(g.duel.ok / g.duel.n)}`);
+  if (g.item.n) gl.push(`카트 아이템 사용 ${g.item.n}번`);
+  if (g.route.short + g.route.long) gl.push(`윷 지름길 ${g.route.short}·긴 길 ${g.route.long}`);
+  if (gl.length) L.push(`- 게임 속 선택: ${gl.join(', ')}`);
+  return L;
+}
+
 // AI 프롬프트용: 모둠 통계만 (이름 없음)
 function coopPromptLines() {
   const C = S.C; if (!C?.sessions.length) return ['[모둠 협력 기록 없음]'];
@@ -575,6 +720,7 @@ const AI = {
   fix: { icon: '🔧', name: '오개념 바로잡기 활동', desc: '학생들이 왜 그렇게 생각했는지와 짧은 활동 아이디어' },
   quiz: { icon: '📝', name: '보충·심화 문제 만들기', desc: '즐거운 퀴즈에 바로 올릴 수 있는 엑셀 표 형식' },
   feedback: { icon: '💌', name: '학부모·학생 피드백 문구', desc: '반 전체 결과 안내, 학생별 격려 문구(가명)' },
+  behav: { icon: '🎮', name: '게임 속 학습 행동 돌아보기', desc: '빠르기·다시 만난 문제·흐름·회복으로 다음 게임 다듬기' },
   coop: { icon: '🤝', name: '모둠 협력 돌아보기', desc: '참여 형평성·성찰·교사 알림으로 다음 모둠 활동 다듬기', coopOnly: true },
 };
 const aiKinds = () => Object.entries(AI).filter(([, v]) => !v.coopOnly || S.C?.sessions.length);
@@ -600,16 +746,16 @@ function renderAiForm() {
   const grades = [['', '학년 고르기'], ...[1, 2, 3, 4, 5, 6].map(g => [`${g}학년`, `${g}학년`])];
   let o = sel('ai-grade', '학년', grades, ai.grade);
   if (ai.kind === 'lesson') o += sel('ai-min', '수업 시간', [[40, '40분 (초등 1차시)'], [80, '80분 (블록 수업)']], ai.minutes);
-  if (ai.kind !== 'feedback' && ai.kind !== 'coop') o += sel('ai-top', '넣을 약한 문제 수', [[3, '3개'], [5, '5개'], [8, '8개']], ai.topN);
+  if (!['feedback', 'coop', 'behav'].includes(ai.kind)) o += sel('ai-top', '넣을 약한 문제 수', [[3, '3개'], [5, '5개'], [8, '8개']], ai.topN);
   if (ai.kind === 'quiz') o += sel('ai-count', '만들 문제 수', [[10, '10문제'], [15, '15문제'], [20, '20문제']], ai.count) + sel('ai-level', '문제 수준', [['both', '보충 + 심화 섞어서'], ['easy', '보충(기초 다지기)'], ['hard', '심화(도전)']], ai.level);
   if (ai.kind === 'feedback') o += sel('ai-fb', '누구에게', [['parent', '학부모 안내문 (반 전체 결과)'], ['class', '학생들에게 (반 전체 격려)'], ['each', '학생별 짧은 격려 문구 (가명)']], ai.fbTarget);
   $('#ai-opts').innerHTML = o;
-  $('.an-switch').hidden = ai.kind === 'coop';
-  if (ai.kind === 'coop') { $('#ai-real').checked = false; $('#ai-real-warn').hidden = true; }
+  $('.an-switch').hidden = ai.kind === 'coop' || ai.kind === 'behav';
+  if (ai.kind === 'coop' || ai.kind === 'behav') { $('#ai-real').checked = false; $('#ai-real-warn').hidden = true; }
   const bind = (id, key, numeric) => { const el = $('#' + id); if (el) el.onchange = () => { ai[key] = numeric ? +el.value : el.value; buildPrompt(); }; };
   bind('ai-grade', 'grade'); bind('ai-min', 'minutes', 1); bind('ai-top', 'topN', 1); bind('ai-count', 'count', 1); bind('ai-level', 'level'); bind('ai-fb', 'fbTarget');
   const steps = ['아래 <b>📋 복사하기</b> 버튼을 눌러요.', '학교에서 허용한 AI(ChatGPT · Gemini · Claude 등) 채팅 창을 열어요.', '입력 칸에 <b>붙여 넣기(Ctrl+V)</b> 하고 보내요.',
-    ai.kind === 'coop' ? 'AI의 제안 가운데 우리 반에 맞는 것만 골라 다음 모둠 활동에 써 봐요. 특정 학생을 탓하는 말은 쓰지 않아요.' : ai.kind === 'quiz' ? '나온 표를 복사해서 즐거운 퀴즈 <b>선생님 화면 → 문제 넣기</b>에 붙여 넣거나, 엑셀에 붙여 저장한 뒤 올려요. 꼭 내용을 확인해 주세요!' : 'AI가 준 답을 그대로 쓰지 말고, 우리 반에 맞게 살펴보고 고쳐 써요.'];
+    ai.kind === 'behav' ? '제안 가운데 우리 반에 맞는 것만 골라 다음 게임 설정에 반영해 봐요. 아이를 단정하는 말로 쓰지 않아요.' : ai.kind === 'coop' ? 'AI의 제안 가운데 우리 반에 맞는 것만 골라 다음 모둠 활동에 써 봐요. 특정 학생을 탓하는 말은 쓰지 않아요.' : ai.kind === 'quiz' ? '나온 표를 복사해서 즐거운 퀴즈 <b>선생님 화면 → 문제 넣기</b>에 붙여 넣거나, 엑셀에 붙여 저장한 뒤 올려요. 꼭 내용을 확인해 주세요!' : 'AI가 준 답을 그대로 쓰지 말고, 우리 반에 맞게 살펴보고 고쳐 써요.'];
   $('#ai-steps').innerHTML = steps.map(s => `<li>${s}</li>`).join('');
   buildPrompt();
 }
@@ -655,6 +801,12 @@ function buildPrompt() {
       '', '[꼭 지킬 형식]', '- 아래 6칸 표 하나로만 답해 주세요. 표 밖에 다른 설명은 쓰지 마세요.', '| 문제 | 정답 | 오답1 | 오답2 | 오답3 | 해설 |',
       '- 정답은 하나만 쓰고, 오답 3개는 그럴듯하게 (위 오개념을 오답으로 활용하면 좋아요).', '- O/X 문제는 정답 칸에 O 또는 X만 쓰고 오답 칸은 비워 두세요.',
       '- 단답형 문제는 오답 칸을 비우고, 정답이 여러 표현이면 정답 칸에 "/"로 나눠 쓰세요 (예: 귀 체온계/체온계).', `- 문제는 40자 안팎, ${grade} 학생이 읽기 쉬운 말로 써 주세요.`, '- 해설은 한두 문장으로, 왜 그 답인지 알려 주세요.', '- 교과서 내용에서 벗어나지 않게, 사실이 정확한지 한 번 더 확인해 주세요.'];
+  } else if (ai.kind === 'behav') {
+    L.push('', ...behavPromptLines());
+    ask = [`당신은 ${grade} 교사를 돕는 학습 분석·게임 기반 수업 전문가입니다.`, '위 결과는 게임형 퀴즈에서 정답·오답 말고 아이들이 "어떻게" 풀었는지를 모은 반 전체 통계예요. 다음을 정리해 주세요.',
+      '1. 이 반의 학습 모습에서 좋은 신호 2~3가지', '2. 살펴볼 신호 2~3가지와 그렇게 보일 수 있는 여러 이유 (예: 빠르게 틀림 = 찍기일 수도, 헷갈리는 보기 때문일 수도)',
+      '3. 다음 게임 설정 바꾸기 제안 (시간 제한, 게임 길이, 문제 모양, 다시 만나는 문제 비율 등)', '4. 수업 중 바로 쓸 수 있는 말 걸기 문장 3개 (서두르는 친구, 후반에 지친 친구, 틀린 뒤 흔들리는 친구에게)',
+      '- 아이를 단정하거나 낙인찍는 표현은 쓰지 말고, 한 판의 기록이라는 한계를 함께 적어 주세요.', `- ${grade} 교실에서 쓸 수 있게 짧은 목록으로 써 주세요.`];
   } else if (ai.kind === 'coop') {
     L.push('', ...coopPromptLines());
     ask = [`당신은 ${grade} 협동학습과 게이미피케이션 수업 설계에 밝은 교사 연구자입니다.`, '위 모둠 협력 기록(이름 없는 통계)을 보고 다음을 정리해 주세요.',
@@ -696,7 +848,7 @@ function buildPrompt() {
     $('#ai-key-list').innerHTML = [...allNames].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }))
       .map(n => `<span class="an-keyitem"><b>${esc(pa(n))}</b> = ${esc(n)}</span>`).join('');
   }
-  $('#ai-len').textContent = `${text.length.toLocaleString()}자 · ${ai.kind === 'coop' ? '🔒 모둠 통계만 넣었어요 (학생 이름 없음)' : real ? '⚠️ 실제 이름 포함' : '🔒 이름은 학생 A, B…로 바꿨어요'}`;
+  $('#ai-len').textContent = `${text.length.toLocaleString()}자 · ${ai.kind === 'coop' ? '🔒 모둠 통계만 넣었어요 (학생 이름 없음)' : ai.kind === 'behav' ? '🔒 반 전체 통계만 넣었어요 (학생 이름 없음)' : real ? '⚠️ 실제 이름 포함' : '🔒 이름은 학생 A, B…로 바꿨어요'}`;
 }
 $('#ai-real').onchange = e => {
   if (e.target.checked && !confirm('학생의 실제 이름이 AI 서비스로 보내지게 돼요.\n개인정보 보호를 위해 권장하지 않아요. 그래도 넣을까요?')) e.target.checked = false;

@@ -1,0 +1,38 @@
+# 화면(public 폴더)을 GitHub Pages 로 배포해요. 저장소 Settings → Pages → Source: GitHub Actions.
+# 저장소 Settings → Secrets and variables → Actions → Variables 에 SERVER_URL (예: https://joyful-quiz.onrender.com) 을 넣으면
+# 학생·선생님 화면이 그 실시간 서버로 연결돼요.
+name: 화면 배포 (GitHub Pages)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 실시간 서버 주소 넣기
+        env:
+          SERVER_URL: ${{ vars.SERVER_URL }}
+        run: |
+          if [ -n "$SERVER_URL" ]; then
+            printf "window.JQ_CONFIG = { server: '%s' };\n" "${SERVER_URL%/}" > public/config.js
+          fi
+          touch public/.nojekyll
+          cat public/config.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,14 @@
+# (선택) 무료 서버는 15분 동안 아무도 안 쓰면 잠들어요. 평일 수업 시간(08:00~16:00 KST)에만 10분마다 깨워 둬요.
+# 저장소 Variables 에 KEEP_WARM=true 와 SERVER_URL 이 있을 때만 동작해요.
+name: 수업 시간에 서버 깨워 두기
+on:
+  schedule:
+    - cron: '*/10 23 * * 0-4'   # 월~금 08:00~08:59 KST
+    - cron: '*/10 0-6 * * 1-5'  # 월~금 09:00~15:59 KST
+  workflow_dispatch:
+jobs:
+  ping:
+    if: vars.KEEP_WARM == 'true' && vars.SERVER_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --max-time 90 "${{ vars.SERVER_URL }}/api/info" > /dev/null || echo "아직 깨는 중"

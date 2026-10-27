@@ -13,7 +13,7 @@ export const CHAR = Object.fromEntries(CHARS.map(c => [c.id, c]));
 export const RARITY = { common: { name: '일반', color: '#8FA3C4' }, rare: { name: '희귀', color: '#3D8BFF' }, legendary: { name: '전설', color: '#FFB800' } };
 // 처음부터 고를 수 있는 친구 (나머지는 게임으로 모은 칭찬 도장으로 뽑기)
 export const STARTERS = ['cat', 'dog', 'bunny', 'bear', 'panda', 'fox', 'frog', 'penguin'];
-export const charImg = id => `assets/chars/${id}.png`;
+export const charImg = id => `assets/chars/${id}.webp`;
 export const emojiOf = a => CHAR[a?.char]?.emoji || a?.face || '🐱';
 
 // 재미있는 별명 (선생님이 '별명 모드'를 켜면 친구들 화면에 이름 대신 보임)

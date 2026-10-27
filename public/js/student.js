@@ -123,7 +123,7 @@ function renderWait() {
   const mine = room.players.find(p => p.pid === me.pid), T = room.teamCount && room.teams?.[mine?.team];
   $('#w-name').insertAdjacentHTML('beforeend', T ? ` <span class="team-badge" style="--tc:${T.color}">${T.emoji} ${esc(T.name)} 모둠</span>` : '');
   $('#w-room').textContent = room.state === 'end' ? '다음 게임을 기다려요' : '선생님이 시작할 때까지 기다려요';
-  $('#w-game').innerHTML = `<div class="art"><img src="assets/modes/${M.id}.png" alt=""></div>
+  $('#w-game').innerHTML = `<div class="art"><img src="assets/modes/${M.id}.webp" alt=""></div>
     <div><h2>${M.emoji} ${esc(M.name)}</h2><ol>${M.student.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>`;
   onImgFail($('#w-game img'), img => { img.parentElement.innerHTML = `<div class="art-fallback">${M.emoji}</div>`; });
   const ps = room.players;

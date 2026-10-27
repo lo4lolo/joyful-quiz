@@ -10,14 +10,17 @@ import { Server } from 'socket.io';
 import { cleanQuestions, studentView, grade, shuffle } from './server/quiz.js';
 import { TEAMS, MAX_TEAMS, assignTeams, smallestTeam } from './server/teams.js';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUB = path.join(ROOT, 'public');
 const PORT = +process.env.PORT || 3030;
 // 인터넷에 올릴 때: PUBLIC_URL=https://주소/ (학생 QR 주소), TEACHER_PIN=선생님만 아는 숫자 (방 만들기 잠금)
 const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/?$/, process.env.PUBLIC_URL ? '/' : '');
 const TEACHER_PIN = String(process.env.TEACHER_PIN || '');
-const MAX_ROOMS = 300, MAX_PLAYERS = 60, ROOM_TTL = 4 * 3600e3, ENDED_TTL = 30 * 60e3;
+// 화면을 다른 주소(예: GitHub Pages)에서 열 때 허용할 주소들. 비우면 같은 주소만.
+const ALLOWED = String(process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean);
+// 학생 기록은 메모리에만: 방을 닫으면 바로, 끝난 방은 선생님이 떠나고 10분 뒤 지운다
+const MAX_ROOMS = 300, MAX_PLAYERS = 300, ROOM_TTL = 4 * 3600e3, ENDED_TTL = 10 * 60e3;
 // 게임 방식: server/modes/<id>.js 파일이 있으면 불러온다 (순서 = 화면 순서)
 const MODE_IDS = ['race', 'live', 'chest', 'territory', 'shop', 'fishing', 'raid', 'royale', 'tug', 'mugunghwa', 'yut'];
 export const MODES = Object.create(null);
@@ -49,7 +52,13 @@ const server = http.createServer((req, res) => {
 function serve(req, res) {
   const url = new URL(req.url, 'http://x');
   const head = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': CSP };
+  if (url.pathname === '/api/stats' && process.env.LOADTEST === '1') { // 부하 시험 때만
+    res.writeHead(200, { ...head, 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify({ cpu: process.cpuUsage(), mem: process.memoryUsage().rss, up: process.uptime(), sent: STATS.sent, recv: STATS.recv, wire: STATS.wireNow?.() || 0, types: STATS.types, sockets: io.engine.clientsCount, rooms: rooms.size }));
+  }
   if (url.pathname === '/api/info') {
+    const o = req.headers.origin;
+    if (o && ALLOWED.includes(o)) { head['Access-Control-Allow-Origin'] = o; head['Vary'] = 'Origin'; }
     res.writeHead(200, { ...head, 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store' });
     return res.end(JSON.stringify({ version: VERSION, lan: PUBLIC_URL ? [] : lanUrls(), publicUrl: PUBLIC_URL, pinRequired: !!TEACHER_PIN,
       modes: Object.values(MODES).map(m => ({ id: m.id, name: m.name })) }));
@@ -72,7 +81,22 @@ function serve(req, res) {
   });
 }
 
-const io = new Server(server, { maxHttpBufferSize: 2e6, pingInterval: 10000, pingTimeout: 15000, serveClient: true });
+// 큰 메시지(1KB 넘는 순위표 등)만 압축: 무료 서버의 대역폭을 아끼고 CPU는 덜 쓴다
+const io = new Server(server, { maxHttpBufferSize: 2e6, pingInterval: 25000, pingTimeout: 20000, serveClient: true,
+  perMessageDeflate: { threshold: 1024, zlibDeflateOptions: { level: 3 }, serverNoContextTakeover: true, clientNoContextTakeover: true },
+  cors: { origin: (origin, cb) => cb(null, !origin || ALLOWED.length === 0 || ALLOWED.includes(origin)) } });
+const STATS = { sent: 0, recv: 0, wire: 0 };
+if (process.env.LOADTEST === '1') { let closed = 0; const live = new Set();
+  server.on('connection', c => { live.add(c); c.on('close', () => { closed += c.bytesWritten; live.delete(c); }); });
+  STATS.wireNow = () => closed + [...live].reduce((a, c) => a + c.bytesWritten, 0); }
+if (process.env.LOADTEST === '1') io.engine.on('connection', s => {
+  s.on('packetCreate', p => {
+    const n = typeof p.data === 'string' ? p.data.length : 8; STATS.sent += n;
+    const m = typeof p.data === 'string' && p.data.match(/^\d*\["(\w+)"(?:,\{"type":"([\w:]+)")?/);
+    const k = m ? (m[2] ? m[1] + ':' + m[2] : m[1]) : 'ping'; (STATS.types ||= {})[k] = ((STATS.types[k]) || 0) + n;
+  });
+  s.on('packet', p => { STATS.recv += typeof p.data === 'string' ? p.data.length : 8; });
+});
 
 // ---------- 방 ----------
 const rooms = new Map();
@@ -114,6 +138,14 @@ function makeApi(room) {
     toTeacher: (type, data) => io.to(room.code + ':t').emit('m', { type, data }),
     toPlayer: (pid, type, data) => { const p = room.players.get(pid); if (p?.sid) io.to(p.sid).emit('m', { type, data }); },
     feed: text => { const f = { text: String(text).slice(0, 140), t: Date.now() }; room.feed.push(f); if (room.feed.length > 60) room.feed.shift(); io.to(room.code + ':t').emit('feed', f); },
+    // 주기적으로 보내는 순위표 등: 바뀐 게 없으면 건너뛴다 (시간 값은 비교에서 빼고, every ms 마다는 꼭 보냄)
+    toAllIfChanged(type, data, { to = 'all', ignore = ['left', 'ms', 'timeLeft', 'endsIn', 'now', 't'], every = 4000 } = {}) {
+      const key = to + ':' + type, sig = JSON.stringify(data, (k, v) => (ignore.includes(k) ? undefined : v)), now = Date.now();
+      const last = (room.sent ||= Object.create(null))[key];
+      if (last && last.sig === sig && now - last.t < every) return false;
+      room.sent[key] = { sig, t: now };
+      (to === 'students' ? api.toStudents : to === 'teacher' ? api.toTeacher : api.toAll)(type, data); return true;
+    },
     sendRoom: () => { io.to(room.code + ':s').emit('room', roomInfo(room)); io.to(room.code + ':t').emit('room', roomInfo(room, true)); },
     // 자율 진행: 학생마다 섞인 순서로 다음 문제
     nextQi(p) {
@@ -125,7 +157,7 @@ function makeApi(room) {
     },
     ask(p, qi = api.nextQi(p), time = room.settings.time) {
       const v = studentView(room.questions, qi, p.device, time);
-      p.pending = { qid: v.qid, sentAt: Date.now(), time }; p.lastQi = qi;
+      p.pending = { qid: v.qid, sentAt: Date.now(), time, kind: v.kind }; p.lastQi = qi;
       if (p.sid) io.to(p.sid).emit('q', v);
       return v;
     },
@@ -136,7 +168,7 @@ function makeApi(room) {
       const now = Date.now();
       for (const p of room.players.values()) {
         const v = p.device === 'touch' ? touchView : pcView;
-        p.pending = { qid: qi, sentAt: now, time };
+        p.pending = { qid: qi, sentAt: now, time, kind: v.kind };
         if (p.sid) io.to(p.sid).emit('q', v);
       }
       return { pcView, touchView };
@@ -145,10 +177,15 @@ function makeApi(room) {
       if (!p.pending || p.pending.qid !== qid) return null;
       const Q = room.questions[qid]; if (!Q) return null;
       const ms = Date.now() - p.pending.sentAt;
-      p.pending = null;
+      const pend = p.pending;
+      p.pending = null; p.pendingKind = pend?.kind;
       const g = String(given ?? '').slice(0, 80);
       const r = grade(Q, g);
-      const entry = { pid: p.pid, name: p.realName || p.name, qid, ok: r.ok, given: g, ms, t: Date.now() };
+      // 정오답 말고도: 몇 번째 만난 문제인지(try), 게임 속 몇 번째 답(seq), 직전 연속 정답(streak), 건너뜀(skip), 문제 모양(kind)
+      const seen = (p.seen ||= Object.create(null)); seen[qid] = (seen[qid] || 0) + 1;
+      const entry = { pid: p.pid, name: p.realName || p.name, qid, ok: r.ok, given: g, ms, t: Date.now(),
+        try: seen[qid], seq: p.stats.n + 1, streak: p.streakNow | 0, skip: !g, kind: p.pendingKind || Q.kind, dev: p.device === 'touch' ? 't' : 'p' };
+      p.streakNow = r.ok ? (p.streakNow | 0) + 1 : 0;
       if (room.log.length < 50000) room.log.push(entry);
       io.to(room.code + ':t').emit('log', entry);
       p.stats.n++; if (r.ok) p.stats.ok++;
@@ -233,7 +270,7 @@ io.on('connection', socket => {
     if (!questions.length) return ack({ error: '문제를 1개 이상 넣어 주세요.' });
     const code = newCode(); if (!code) return ack({ error: '방 번호를 만들 수 없어요.' });
     if (TEACHER_PIN && String(d.pin || '') !== TEACHER_PIN) return ack({ error: '선생님 PIN이 맞지 않아요.', pin: true });
-    const base = { time: Math.max(5, Math.min(120, d.settings?.time | 0 || 20)), maxPlayers: Math.max(2, Math.min(MAX_PLAYERS, d.settings?.maxPlayers | 0 || 40)), nick: !!d.settings?.nick };
+    const base = { time: Math.max(5, Math.min(120, d.settings?.time | 0 || 20)), maxPlayers: Math.max(2, Math.min(M.id === 'race' ? 40 : MAX_PLAYERS, d.settings?.maxPlayers | 0 || 40)), nick: !!d.settings?.nick };
     room = { code, key: id(18), title: cleanTitle(d.title) || '우리 반', mode: M.id, settings: { ...base, ...M.settings(d.settings || {}) },
       questions, players: new Map(), log: [], feed: [], state: 'lobby', createdAt: Date.now(), teacherOnline: true, m: {} };
     room.api = makeApi(room);
@@ -255,6 +292,7 @@ io.on('connection', socket => {
     room.mode = M.id; room.questions = qs; room.title = cleanTitle(d.title) || room.title;
     room.settings = { ...room.settings, time: Math.max(5, Math.min(120, d.settings?.time | 0 || room.settings.time)), ...M.settings(d.settings || {}) };
     if (d.settings && 'nick' in d.settings) room.settings.nick = !!d.settings.nick;
+    if (d.settings?.maxPlayers) room.settings.maxPlayers = Math.max(2, Math.min(M.id === 'race' ? 40 : MAX_PLAYERS, d.settings.maxPlayers | 0));
     room.api = makeApi(room);
     room.api.sendRoom(); ack({ room: roomInfo(room, true), questions: room.questions });
   }));
@@ -263,7 +301,7 @@ io.on('connection', socket => {
     const online = [...room.players.values()].filter(p => p.online);
     if (!online.length) return ack({ error: '들어온 학생이 없어요.' });
     // 다시 하기: 점수·순서 초기화 (기록은 교사 쪽에서 새 파일로 저장)
-    for (const p of room.players.values()) { p.score = 0; p.order = []; p.pending = null; p.stats = { n: 0, ok: 0 }; p.m = {}; }
+    for (const p of room.players.values()) { p.score = 0; p.order = []; p.pending = null; p.stats = { n: 0, ok: 0 }; p.m = {}; p.seen = Object.create(null); p.streakNow = 0; }
     room.log = []; room.feed = []; room.m = {}; room.lastRanking = null;
     room.state = 'play'; room.startedAt = Date.now();
     room.api.sendRoom(); // 먼저 '시작' 상태를 알려 화면을 준비시키고
@@ -290,6 +328,8 @@ io.on('connection', socket => {
   }));
   on('t:lock', T((d, ack) => { room.locked = !!d.locked; room.api.sendRoom(); ack({ ok: true, locked: room.locked }); }));
   on('t:close', T((d, ack) => { closeRoom(room); room = null; isTeacher = false; ack({ ok: true }); }));
+  // 선생님이 결과를 저장했으면 서버 메모리의 응답 기록을 바로 지운다 (순위만 남겨 학생 결과 화면 유지)
+  on('t:purge', T((d, ack) => { room.log.length = 0; room.feed.length = 0; ack({ ok: true }); }));
   on('t:mode', T((d, ack) => { if (room.state === 'play') MODES[room.mode].onTeacher?.(room, String(d.type), d.data || {}, room.api, ack); }));
 
   // ----- 학생 -----

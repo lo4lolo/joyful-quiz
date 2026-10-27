@@ -18,7 +18,7 @@ const clampR = r => Math.max(-100, Math.min(100, +r || 0));
 
 // 그림이 있으면 클래스를 붙인다 (CSS 배경용). 없으면 CSS 그림 그대로.
 function preload(src, ok) { const i = new Image(); i.onload = () => { if (i.naturalWidth) ok(); }; i.src = src; }
-const emblem = (T, size = '') => `<span class="tg-emb ${size}" style="--tc:${esc(T.color)}"><img src="${ART}team_${esc(T.id)}.png" alt="" draggable="false"><b>${esc(T.emoji)}</b></span>`;
+const emblem = (T, size = '') => `<span class="tg-emb ${size}" style="--tc:${esc(T.color)}"><img src="${ART}team_${esc(T.id)}.webp" alt="" draggable="false"><b>${esc(T.emoji)}</b></span>`;
 function wireImgs(root) {
   $$('.tg-emb img', root).forEach(img => onImgFail(img, () => img.parentElement.classList.add('noimg')));
   $$('.tg-ribbon img', root).forEach(img => onImgFail(img, () => img.parentElement.classList.add('noimg')));
@@ -44,14 +44,14 @@ function fieldHTML(big) {
       <span class="tg-lab l"></span><span class="tg-lab r"></span></div>
     <div class="tg-mover">
       <div class="tg-rope"></div>
-      ${big ? `<div class="tg-crew left" data-img="tug_left.png"><div class="tg-avas"></div></div>
-      <div class="tg-crew right" data-img="tug_right.png"><div class="tg-avas"></div><div class="tg-doks">${dokkaebi(0)}${dokkaebi(1)}${dokkaebi(2)}</div></div>` : ''}
-      <span class="tg-ribbon"><img src="${ART}rope_center.png" alt="" draggable="false"><i class="tg-flag"></i></span>
+      ${big ? `<div class="tg-crew left" data-img="tug_left.webp"><div class="tg-avas"></div></div>
+      <div class="tg-crew right" data-img="tug_right.webp"><div class="tg-avas"></div><div class="tg-doks">${dokkaebi(0)}${dokkaebi(1)}${dokkaebi(2)}</div></div>` : ''}
+      <span class="tg-ribbon"><img src="${ART}rope_center.webp" alt="" draggable="false"><i class="tg-flag"></i></span>
     </div></div>`;
 }
 function fieldUI(root, big) {
   const f = $('.tg-field', root), mover = $('.tg-mover', f);
-  preload(ART + 'rope.png', () => f.classList.add('has-rope'));
+  preload(ART + 'rope.webp', () => f.classList.add('has-rope'));
   let cur = 0;
   return {
     el: f,
@@ -319,8 +319,8 @@ export function mountTeacher(el, ctx) {
     <div class="tg-over" hidden></div></div>`;
   ctx.music.start(140);
   const S = makeState(), field = fieldUI(el, true), over = overlayUI(el), scene = $('#tt-scene', el);
-  preload(ART + 'bg_madang.jpg', () => scene.classList.add('has-bg'));
-  preload(ART + 'hanji.jpg', () => el.querySelector('.tg-t')?.classList.add('has-hanji'));
+  preload(ART + 'bg_madang.webp', () => scene.classList.add('has-bg'));
+  preload(ART + 'hanji.webp', () => el.querySelector('.tg-t')?.classList.add('has-hanji'));
   wireImgs(el);
   const sound = n => ctx.sound.play(n);
   let bannerKey = '', lastSound = 0;

@@ -14,6 +14,7 @@
 <section class="screen on" id="s-code">
   <div class="join-wrap">
     <h1 class="logo">즐거운<span>퀴즈</span></h1>
+    <p class="tagline">퀴즈를 즐겁게 풀어요! 맞힐수록 신나는 시간</p>
     <form class="card join-card" id="code-form" autocomplete="off">
       <div class="tape"></div>
       <label class="field"><span>게임 코드</span>
@@ -117,7 +118,8 @@
 </section>
 <div class="conn" id="conn" hidden>연결이 끊겼어요. 다시 연결하는 중…</div>
 
-<script src="socket.io/socket.io.js"></script>
+<script src="config.js"></script>
+<script src="vendor/socket.io.min.js"></script>
 <script type="module" src="js/student.js"></script>
 </body>
 </html>

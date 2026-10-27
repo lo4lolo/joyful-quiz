@@ -21,7 +21,7 @@ const LURE_MAX = 5, LURE_STEP = 2;
 
 // 물고기 그림 (없으면 이모지). CSP 때문에 onerror 대신 addEventListener
 const failed = new Set();
-const fishHTML = (id, cls = '') => `<span class="fi-fish ${cls} fi-${esc(id)} ${failed.has(id) ? 'noimg' : ''}"><img src="assets/fish/${esc(id)}.png" alt="" draggable="false" data-id="${esc(id)}"><em>${F[id]?.em || '🐟'}</em></span>`;
+const fishHTML = (id, cls = '') => `<span class="fi-fish ${cls} fi-${esc(id)} ${failed.has(id) ? 'noimg' : ''}"><img src="assets/fish/${esc(id)}.webp" alt="" draggable="false" data-id="${esc(id)}"><em>${F[id]?.em || '🐟'}</em></span>`;
 function fixImgs(el) {
   $$('.fi-fish img', el).forEach(img => {
     if (img.dataset.fx) return; img.dataset.fx = '1';

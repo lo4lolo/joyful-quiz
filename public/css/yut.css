@@ -4,7 +4,7 @@
 /* ---------- 윷판 ---------- */
 .yt-board { position: relative; width: 100%; aspect-ratio: 1; border: 3px solid var(--ink); border-radius: 20px; box-shadow: var(--hard);
   background-color: var(--hanji);
-  background-image: radial-gradient(rgba(140, 100, 50, .10) 1px, transparent 1.6px), radial-gradient(rgba(140, 100, 50, .07) 1px, transparent 1.4px), url(../assets/trad/hanji.jpg);
+  background-image: radial-gradient(rgba(140, 100, 50, .10) 1px, transparent 1.6px), radial-gradient(rgba(140, 100, 50, .07) 1px, transparent 1.4px), url(../assets/trad/hanji.webp);
   background-size: 23px 19px, 31px 37px, cover; background-position: 0 0, 11px 7px, center; }
 .yt-board.big { border-width: 4px; border-radius: 26px; }
 .yt-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }

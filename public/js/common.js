@@ -26,9 +26,13 @@ export function toast(text, ms = 2200) {
   setTimeout(() => t.remove(), ms);
 }
 
+// 실시간 서버 주소 (config.js). 비어 있으면 이 화면을 보낸 서버.
+export const SERVER = (window.JQ_CONFIG?.server || '').replace(/\/$/, '');
+export const apiURL = p => (SERVER || '') + p;
 export function connect() {
   if (!window.io) { toast('서버에 연결할 수 없어요. 주소를 확인해 주세요.'); throw new Error('socket.io 없음'); }
-  return window.io({ transports: ['websocket', 'polling'], reconnectionDelayMax: 3000 });
+  const opts = { transports: ['websocket', 'polling'], reconnectionDelayMax: 3000 };
+  return SERVER ? window.io(SERVER, opts) : window.io(opts);
 }
 export const emit = (socket, ev, data) => new Promise(res => socket.timeout(8000).emit(ev, data, (err, r) => res(err ? { error: '연결이 느려요. 다시 해 볼까요?' } : r)));
 

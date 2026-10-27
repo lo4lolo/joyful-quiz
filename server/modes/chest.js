@@ -73,6 +73,7 @@ export default {
       const i = Math.max(0, Math.min(2, data.i | 0));
       const all = p.m.picking, res = all[i];
       p.m.picking = null;
+      api.event('chest', p.pid, { i, kind: res.kind, risky: ['steal', 'swap', 'lose', 'x2', 'x3'].includes(res.kind) });
       if (res.kind === 'steal' || res.kind === 'swap' || res.kind === 'gift') {
         p.m.targeting = res;
         const list = others(room, p).map(o => ({ pid: o.pid, name: o.name, avatar: o.avatar, score: o.score })).sort((a, b) => b.score - a.score);
@@ -111,7 +112,11 @@ export default {
   tick(room, api) {
     const now = Date.now();
     if (now >= room.m.endsAt) return api.end();
-    if (now - room.m.lastBoard > 1000) { room.m.lastBoard = now; api.toAll('board', { top: scores(room).slice(0, 40), endsAt: room.m.endsAt }); }
+    if (now - room.m.lastBoard > 1000) { // TV는 1초마다 전체, 학생은 2초마다 가벼운 순위만 (대역폭 절약)
+      room.m.lastBoard = now; const top = scores(room);
+      (api.toAllIfChanged || api.toAll)('board', { top: top.slice(0, 40), endsAt: room.m.endsAt }, { to: 'teacher' });
+      if ((room.m.sb = (room.m.sb | 0) + 1) % 2 === 0) (api.toAllIfChanged || api.toAll)('board', { top: top.map(({ pid, score }) => ({ pid, score })), endsAt: room.m.endsAt }, { to: 'students' });
+    }
   },
   ranking(room) {
     return scores(room).map((s, i, arr) => ({ pid: s.pid, name: s.name, score: s.score, rank: i && arr[i - 1].score === s.score ? null : i + 1,

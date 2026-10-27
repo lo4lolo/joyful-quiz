@@ -19,17 +19,17 @@ function wireImgs(root) {
     img.addEventListener('error', bad, { once: true });
   }
 }
-const emblem = (T, cls = '') => `<span class="mg-imgbox mg-emb ${cls}" style="--tc:${esc(T.color)}"><img class="mg-img" src="${ART}team_${esc(T.id)}.png" alt="" draggable="false"><b>${esc(T.emoji)}</b></span>`;
+const emblem = (T, cls = '') => `<span class="mg-imgbox mg-emb ${cls}" style="--tc:${esc(T.color)}"><img class="mg-img" src="${ART}team_${esc(T.id)}.webp" alt="" draggable="false"><b>${esc(T.emoji)}</b></span>`;
 const sulaeHTML = () => `<div class="mg-sulae"><div class="mg-sbob">
   <div class="mg-blob"><i class="horn l"></i><i class="horn r"></i><span class="b">🙈</span><span class="l">👀</span></div>
-  <span class="mg-imgbox mg-sart"><img class="mg-img back" src="${ART}sulae_back.png" alt="술래" draggable="false"></span>
-  <span class="mg-imgbox mg-sart look"><img class="mg-img" src="${ART}sulae_look.png" alt="" draggable="false"></span></div>
+  <span class="mg-imgbox mg-sart"><img class="mg-img back" src="${ART}sulae_back.webp" alt="술래" draggable="false"></span>
+  <span class="mg-imgbox mg-sart look"><img class="mg-img" src="${ART}sulae_look.webp" alt="" draggable="false"></span></div>
   <div class="mg-sshadow"></div></div>`;
 
 // ---------- 마당 길 (모둠 말들) ----------
 function trackHTML(big, side = '') {
   return `<div class="mg-track ${big ? 'big' : ''}"><div class="mg-lanes"></div>
-    <div class="mg-goal"><span class="mg-imgbox mg-rope"><img class="mg-img" src="${ART}finish_rope.png" alt="" draggable="false"></span></div>
+    <div class="mg-goal"><span class="mg-imgbox mg-rope"><img class="mg-img" src="${ART}finish_rope.webp" alt="" draggable="false"></span></div>
     <div class="mg-sulaebox">${sulaeHTML()}${side}</div></div>`;
 }
 // 길 옆 모둠 이름표 (TV): 남은 걸음 / 술래 치기 / 도착 + 이번 노래에 맞힌 친구 점

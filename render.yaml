@@ -12,3 +12,5 @@ services:
         value: "20"
       - key: TEACHER_PIN
         sync: false   # 대시보드에서 선생님만 아는 숫자를 넣어요 (방 만들기 잠금)
+      - key: ALLOWED_ORIGINS
+        sync: false   # GitHub Pages 화면 주소 (예: https://아이디.github.io) — 여러 개면 쉼표로

@@ -234,7 +234,7 @@ export default {
     if (now - m.lastRope >= RULE.ropeMs) flushRope(room, api, now);
     if (now - m.lastBoard >= RULE.boardMs) {
       m.lastBoard = now;
-      api.toAll('board', { ...roundView(room, now), g: m.teams.map(T => gauge(room, T, now)), online: online(room) });
+      (api.toAllIfChanged || api.toAll)('board', { ...roundView(room, now), g: m.teams.map(T => gauge(room, T, now)), online: online(room) });
     }
   },
   ranking(room) {

@@ -230,6 +230,7 @@ function showEnd(ranking) {
   if (mine) stats.push([SCORE[room?.mode] || '점수', (mine.score || 0).toLocaleString()]);
   if (x.classWin != null) $('#e-rank').insertAdjacentHTML('beforebegin', `<div class="class-result ${x.classWin ? 'win' : ''}">${x.classWin ? '🎉 우리 반이 보스를 모두 물리쳤어요!' : `보스 ${x.bossesDown | 0}마리 처치! 다음엔 꼭!`}</div>`);
   if (x.teamName) stats.push(['우리 팀', `${x.teamName} ${x.teamRank}등`]);
+  if (x.hearts != null && room?.mode === 'royale') stats.push([x.champion ? '🏆 챔피언' : '남은 하트', x.champion ? '우승!' : '❤️'.repeat(x.hearts) || '응원석'], ['이긴 대결', `${x.wins | 0}번`]);
   if (x.biggest && typeof x.biggest === 'object') stats.push(['가장 큰 물고기', `${x.biggest.name || ''} ${x.biggest.kg ?? ''}kg`]);
   $('#e-stats').innerHTML = stats.map(([k, v]) => `<div class="stat"><b>${esc(v)}</b>${esc(k)}</div>`).join('');
   // 칭찬 도장: 맞힌 문제 수 + 3등 안 보너스 (이 기기에만 저장)

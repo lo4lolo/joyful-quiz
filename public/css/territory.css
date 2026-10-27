@@ -1,0 +1,35 @@
+/* 땅따먹기 팀전 */
+.tr-s { min-height: 100vh; padding: 60px 10px 20px; background-color: #C9F5E6; background-image: linear-gradient(#A9E8D2 1px, transparent 1px), linear-gradient(90deg, #A9E8D2 1px, transparent 1px); background-size: 28px 28px; }
+.tr-wrap { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; align-items: start; }
+.tr-mapbox { background: rgba(255,255,255,.92); border-radius: 24px; padding: 10px; box-shadow: var(--shadow); }
+.tr-tip { text-align: center; margin: 6px 0 0; font-size: 17px; }
+.tr-full { background: #fff; border-radius: 24px; padding: 30px; text-align: center; font-size: 28px; box-shadow: var(--shadow); }
+.hexmap { width: 100%; height: auto; display: block; touch-action: manipulation; user-select: none; }
+.hx polygon { stroke-width: 2.5; transition: fill .3s; }
+.hx text { font-size: 20px; text-anchor: middle; pointer-events: none; }
+.hx.near { cursor: pointer; }
+.hx.near polygon { stroke-dasharray: 5 3; stroke: #5b3bd6 !important; }
+.hx.can polygon { animation: glow 1s ease-in-out infinite; stroke-width: 4; stroke-dasharray: none; }
+@keyframes glow { 50% { fill: #fff6b0; } }
+.hx.prot polygon { opacity: .75; }
+.hx.boom { animation: boom .5s; transform-box: fill-box; transform-origin: center; }
+@keyframes boom { 40% { transform: scale(1.25); } }
+.tbar { display: flex; height: 18px; border-radius: 99px; overflow: hidden; margin: 2px 4px 6px; background: var(--line); }
+.tbar i { transition: flex .6s; }
+.tscores { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; font-size: 17px; margin-bottom: 4px; }
+.tscores small { color: var(--muted); }
+
+.tr-t { display: grid; grid-template-columns: 1fr 340px; gap: 16px; padding: 16px; min-height: calc(100vh - 56px); background-color: #C9F5E6; background-image: linear-gradient(#A9E8D2 1px, transparent 1px), linear-gradient(90deg, #A9E8D2 1px, transparent 1px); background-size: 28px 28px; }
+.tt-main { background: rgba(255,255,255,.94); border-radius: 26px; padding: 16px; box-shadow: var(--shadow); }
+.tt-head { display: flex; justify-content: space-between; align-items: center; }
+.tt-head h1 { margin: 0; font-weight: 400; font-size: 40px; }
+.tt-time { font-size: 52px; color: var(--purple); }
+.tr-t .tscores { font-size: 26px; } .tr-t .tbar { height: 26px; }
+.tr-t .hx text { font-size: 22px; }
+.tt-team { margin-bottom: 8px; font-size: 18px; }
+.tt-team span { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tt-team i { font-style: normal; background: var(--soft); border-radius: 10px; padding: 2px 8px; font-size: 14px; font-family: system-ui, sans-serif; }
+.tt-team i.off { opacity: .4; }
+.ct-stats { display: flex; gap: 8px; } .ct-stats .stat { flex: 1; background: var(--soft); border-radius: 14px; padding: 8px; text-align: center; font-size: 16px; }
+.ct-stats .stat b { display: block; font-size: 30px; font-weight: 400; color: var(--purple); }
+@media (max-width: 860px) { .tr-wrap, .tr-t { grid-template-columns: 1fr; } }

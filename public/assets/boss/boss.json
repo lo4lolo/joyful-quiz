@@ -1,0 +1,17 @@
+[
+ {
+  "id": "slime_king",
+  "name": "슬라임 킹",
+  "color": "#4FB8FF"
+ },
+ {
+  "id": "rock_golem",
+  "name": "바위 골렘",
+  "color": "#A9A3C9"
+ },
+ {
+  "id": "cloud_dragon",
+  "name": "구름 용",
+  "color": "#8C6CFF"
+ }
+]

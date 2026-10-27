@@ -1,0 +1,6 @@
+#devbar { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 2000; background: rgba(29,33,64,.85); color: #fff; border-radius: 999px; padding: 6px 14px 4px; display: flex; gap: 12px; align-items: center; font-size: 15px; }
+#devbar a { color: #ffd32a; }
+#devbar select { font-size: 14px; border-radius: 8px; }
+#app { position: fixed; inset: 0; }
+.dev-end { position: fixed; inset: 0; display: grid; place-items: center; z-index: 1500; background: rgba(29,33,64,.6); }
+.dev-end .card { width: min(560px, 94vw); max-height: 80vh; overflow: auto; }

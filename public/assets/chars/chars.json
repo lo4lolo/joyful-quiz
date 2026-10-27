@@ -1,0 +1,98 @@
+[
+ {
+  "id": "cat",
+  "name": "냥냥이",
+  "rarity": "common",
+  "emoji": "🐱"
+ },
+ {
+  "id": "dog",
+  "name": "멍뭉이",
+  "rarity": "common",
+  "emoji": "🐶"
+ },
+ {
+  "id": "bunny",
+  "name": "토토",
+  "rarity": "common",
+  "emoji": "🐰"
+ },
+ {
+  "id": "bear",
+  "name": "곰돌이",
+  "rarity": "common",
+  "emoji": "🐻"
+ },
+ {
+  "id": "panda",
+  "name": "판다곰",
+  "rarity": "common",
+  "emoji": "🐼"
+ },
+ {
+  "id": "fox",
+  "name": "여우비",
+  "rarity": "common",
+  "emoji": "🦊"
+ },
+ {
+  "id": "frog",
+  "name": "개굴이",
+  "rarity": "common",
+  "emoji": "🐸"
+ },
+ {
+  "id": "penguin",
+  "name": "펭펭",
+  "rarity": "common",
+  "emoji": "🐧"
+ },
+ {
+  "id": "hamster",
+  "name": "햄찌",
+  "rarity": "common",
+  "emoji": "🐹"
+ },
+ {
+  "id": "chick",
+  "name": "삐약이",
+  "rarity": "common",
+  "emoji": "🐥"
+ },
+ {
+  "id": "tiger",
+  "name": "호랑이",
+  "rarity": "rare",
+  "emoji": "🐯"
+ },
+ {
+  "id": "koala",
+  "name": "코코",
+  "rarity": "rare",
+  "emoji": "🐨"
+ },
+ {
+  "id": "octopus",
+  "name": "문문이",
+  "rarity": "rare",
+  "emoji": "🐙"
+ },
+ {
+  "id": "dino",
+  "name": "공룡이",
+  "rarity": "rare",
+  "emoji": "🦖"
+ },
+ {
+  "id": "unicorn",
+  "name": "유니콘",
+  "rarity": "legendary",
+  "emoji": "🦄"
+ },
+ {
+  "id": "dragon",
+  "name": "꼬마용",
+  "rarity": "legendary",
+  "emoji": "🐲"
+ }
+]

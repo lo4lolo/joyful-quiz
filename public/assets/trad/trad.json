@@ -1,0 +1,303 @@
+{
+ "teams": [
+  {
+   "id": "cheongryong",
+   "name": "청룡",
+   "color": "#3D8BFF",
+   "file": "team_cheongryong.png"
+  },
+  {
+   "id": "baekho",
+   "name": "백호",
+   "color": "#8FA3C4",
+   "file": "team_baekho.png"
+  },
+  {
+   "id": "jujak",
+   "name": "주작",
+   "color": "#FF6F61",
+   "file": "team_jujak.png"
+  },
+  {
+   "id": "hyeonmu",
+   "name": "현무",
+   "color": "#3A4673",
+   "file": "team_hyeonmu.png"
+  },
+  {
+   "id": "bonghwang",
+   "name": "봉황",
+   "color": "#FFC83D",
+   "file": "team_bonghwang.png"
+  },
+  {
+   "id": "haechi",
+   "name": "해치",
+   "color": "#2ED3A0",
+   "file": "team_haechi.png"
+  }
+ ],
+ "mal": [
+  {
+   "id": "blue",
+   "color": "#3D8BFF",
+   "file": "mal_blue.png"
+  },
+  {
+   "id": "red",
+   "color": "#FF6F61",
+   "file": "mal_red.png"
+  },
+  {
+   "id": "yellow",
+   "color": "#FFC83D",
+   "file": "mal_yellow.png"
+  },
+  {
+   "id": "green",
+   "color": "#2CCB7F",
+   "file": "mal_green.png"
+  },
+  {
+   "id": "white",
+   "color": "#FFFFFF",
+   "file": "mal_white.png"
+  },
+  {
+   "id": "black",
+   "color": "#3A4160",
+   "file": "mal_black.png"
+  }
+ ],
+ "files": [
+  "team_cheongryong.png",
+  "team_baekho.png",
+  "team_jujak.png",
+  "team_hyeonmu.png",
+  "team_bonghwang.png",
+  "team_haechi.png",
+  "sulae_back.png",
+  "sulae_look.png",
+  "mugunghwa.png",
+  "finish_rope.png",
+  "rope.png",
+  "rope_center.png",
+  "tug_left.png",
+  "tug_right.png",
+  "yut_front.png",
+  "yut_back.png",
+  "yut_backdo.png",
+  "yut_board.png",
+  "mal_blue.png",
+  "mal_red.png",
+  "mal_yellow.png",
+  "mal_green.png",
+  "mal_white.png",
+  "mal_black.png",
+  "bg_madang.jpg",
+  "hanji.jpg",
+  "trad.json"
+ ],
+ "modes": [
+  "tug",
+  "mugunghwa",
+  "yut"
+ ],
+ "board": {
+  "file": "yut_board.png",
+  "size": 1024,
+  "note": "정거장 29개. x, y 는 그림 폭·높이 대비 0~1 (왼쪽 위 기준). 0 = 오른쪽 아래 모서리(출발), 반시계로 0..19 바깥 길; 20,21 = 5(오른쪽 위)->가운데, 22 = 가운데, 23,24 = 가운데->15(왼쪽 아래); 25,26 = 10(왼쪽 위)->가운데, 27,28 = 가운데->0(출발). big = 모서리·가운데(큰 돌).",
+  "stations": [
+   {
+    "id": 0,
+    "x": 0.8559,
+    "y": 0.8559,
+    "big": true
+   },
+   {
+    "id": 1,
+    "x": 0.8559,
+    "y": 0.7135,
+    "big": false
+   },
+   {
+    "id": 2,
+    "x": 0.8559,
+    "y": 0.5712,
+    "big": false
+   },
+   {
+    "id": 3,
+    "x": 0.8559,
+    "y": 0.4288,
+    "big": false
+   },
+   {
+    "id": 4,
+    "x": 0.8559,
+    "y": 0.2865,
+    "big": false
+   },
+   {
+    "id": 5,
+    "x": 0.8559,
+    "y": 0.1441,
+    "big": true
+   },
+   {
+    "id": 6,
+    "x": 0.7135,
+    "y": 0.1441,
+    "big": false
+   },
+   {
+    "id": 7,
+    "x": 0.5712,
+    "y": 0.1441,
+    "big": false
+   },
+   {
+    "id": 8,
+    "x": 0.4288,
+    "y": 0.1441,
+    "big": false
+   },
+   {
+    "id": 9,
+    "x": 0.2865,
+    "y": 0.1441,
+    "big": false
+   },
+   {
+    "id": 10,
+    "x": 0.1441,
+    "y": 0.1441,
+    "big": true
+   },
+   {
+    "id": 11,
+    "x": 0.1441,
+    "y": 0.2865,
+    "big": false
+   },
+   {
+    "id": 12,
+    "x": 0.1441,
+    "y": 0.4288,
+    "big": false
+   },
+   {
+    "id": 13,
+    "x": 0.1441,
+    "y": 0.5712,
+    "big": false
+   },
+   {
+    "id": 14,
+    "x": 0.1441,
+    "y": 0.7135,
+    "big": false
+   },
+   {
+    "id": 15,
+    "x": 0.1441,
+    "y": 0.8559,
+    "big": true
+   },
+   {
+    "id": 16,
+    "x": 0.2865,
+    "y": 0.8559,
+    "big": false
+   },
+   {
+    "id": 17,
+    "x": 0.4288,
+    "y": 0.8559,
+    "big": false
+   },
+   {
+    "id": 18,
+    "x": 0.5712,
+    "y": 0.8559,
+    "big": false
+   },
+   {
+    "id": 19,
+    "x": 0.7135,
+    "y": 0.8559,
+    "big": false
+   },
+   {
+    "id": 20,
+    "x": 0.7373,
+    "y": 0.2627,
+    "big": false
+   },
+   {
+    "id": 21,
+    "x": 0.6186,
+    "y": 0.3814,
+    "big": false
+   },
+   {
+    "id": 22,
+    "x": 0.5,
+    "y": 0.5,
+    "big": true
+   },
+   {
+    "id": 23,
+    "x": 0.3814,
+    "y": 0.6186,
+    "big": false
+   },
+   {
+    "id": 24,
+    "x": 0.2627,
+    "y": 0.7373,
+    "big": false
+   },
+   {
+    "id": 25,
+    "x": 0.2627,
+    "y": 0.2627,
+    "big": false
+   },
+   {
+    "id": 26,
+    "x": 0.3814,
+    "y": 0.3814,
+    "big": false
+   },
+   {
+    "id": 27,
+    "x": 0.6186,
+    "y": 0.6186,
+    "big": false
+   },
+   {
+    "id": 28,
+    "x": 0.7373,
+    "y": 0.7373,
+    "big": false
+   }
+  ]
+ },
+ "sulae": {
+  "back": "sulae_back.png",
+  "look": "sulae_look.png",
+  "note": "두 장은 같은 카메라라 바꿔 끼워도 위치·크기가 같음"
+ },
+ "yut": {
+  "front": "yut_front.png",
+  "back": "yut_back.png",
+  "backdo": "yut_backdo.png",
+  "note": "front = 평평한 면(X 3개), back = 둥근 등, backdo = 빨간 X 하나인 백도 윷. 세 장 같은 카메라"
+ },
+ "rope": {
+  "file": "rope.png",
+  "tile": true,
+  "note": "가로로 이어 붙일 수 있음 (1600px 안에 꼬임 10번)"
+ }
+}

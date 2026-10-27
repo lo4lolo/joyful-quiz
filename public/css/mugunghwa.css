@@ -1,0 +1,245 @@
+/* 🌸 무궁화 꽃이 피었습니다 — 칭찬 스티커 공책 (docs/DESIGN.md) + 한옥 마당 */
+.mode-mugunghwa { --mg-green: #2ED3A0; --mg-green-bg: #8CEBC6; --mg-red: #FF6F61; --tok: 26px; }
+
+/* ---------- 그림 상자: 불러오면 그림, 못 불러오면 이모지 ---------- */
+.mg-imgbox img { opacity: 0; transition: opacity .2s; user-select: none; -webkit-user-drag: none; }
+.mg-imgbox.ok img { opacity: 1; }
+
+/* 모둠 문장(엠블럼) */
+.mg-emb { position: relative; display: inline-grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--ink);
+  background: radial-gradient(circle at 34% 28%, rgba(255,255,255,.7) 0 12%, transparent 13%), var(--tc, #8FA3C4); box-shadow: var(--hard-sm); overflow: hidden; vertical-align: middle; }
+.mg-emb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mg-emb b { font-weight: 400; font-size: calc(var(--tok) * .56); line-height: 1; font-family: var(--body); }
+.mg-emb.ok b { visibility: hidden; }
+.mg-emb.sm { width: 28px; height: 28px; border-width: 2px; box-shadow: none; } .mg-emb.sm b { font-size: 16px; }
+.mg-emb.xs { width: 22px; height: 22px; border-width: 2px; box-shadow: none; } .mg-emb.xs b { font-size: 13px; }
+
+/* ---------- 마당 길 ---------- */
+.mg-track { position: relative; display: grid; grid-template-columns: 1fr 12px 88px; align-items: stretch; gap: 0 4px; }
+.mg-lanes { display: flex; flex-direction: column; gap: 4px; padding: 6px 0; min-width: 0; }
+.mg-lane { --p: 0; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px; height: calc(var(--tok) + 6px); padding: 0 6px 0 3px;
+  border-radius: 999px; background: rgba(255,255,255,.62); border: 2px dashed rgba(27,42,74,.22); position: relative; }
+.mg-lname { display: inline-flex; align-items: center; gap: 4px; font-family: var(--display); white-space: nowrap; }
+.mg-lname em { font-style: normal; font-size: 15px; }
+.mg-lane.mine { background: color-mix(in srgb, var(--tc) 22%, #fff); border: 2px solid var(--ink); }
+.mg-track:not(.big) .mg-lname .mg-emb { display: none; }
+.mg-run { position: relative; height: 100%; min-width: 0; }
+.mg-trail { position: absolute; left: 0; top: 50%; height: 6px; transform: translateY(-50%); border-radius: 3px; opacity: .55;
+  width: calc(var(--p) * (100% - var(--tok)) + var(--tok) / 2); background: repeating-linear-gradient(90deg, var(--tc) 0 7px, transparent 7px 13px); transition: width .7s ease-out; }
+.mg-tok { position: absolute; top: 50%; left: calc(var(--p) * (100% - var(--tok))); width: var(--tok); height: var(--tok); transform: translateY(-50%); z-index: 2;
+  transition: left .7s cubic-bezier(.3,1.3,.5,1); }
+.mg-hop { display: block; width: 100%; height: 100%; }
+.mg-hop.go { animation: mg-hop .62s ease-out; }
+@keyframes mg-hop { 0% { transform: none; } 35% { transform: translateY(-75%) scale(1.08, .96) rotate(-6deg); } 70% { transform: translateY(0) scale(1.16, .84); } 100% { transform: none; } }
+.mg-tag { position: absolute; right: 100%; top: 50%; transform: translate(-4px, -50%); white-space: nowrap; font-family: var(--display); font-weight: 400; font-size: 12px;
+  background: var(--lemon); border: 2px solid var(--ink); border-radius: 999px; padding: 0 6px; line-height: 1.5; }
+.mg-lane.tag .mg-hop { animation: mg-wiggle .9s ease-in-out infinite; }
+@keyframes mg-wiggle { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+.mg-lane.arrived .mg-tag { background: var(--mint); }
+.mg-lane.arrived .mg-trail { opacity: .9; }
+/* 떠오르는 글자: 걸음 · 들켰다 · 손 내밀기 */
+.mg-puff { position: absolute; z-index: 4; left: calc(var(--p) * (100% - var(--tok)) + var(--tok) / 2); top: 0; transform: translate(-50%, -40%); pointer-events: none;
+  font-family: var(--display); font-size: 14px; white-space: nowrap; background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 1px 8px 0;
+  box-shadow: var(--hard-sm); animation: mg-puff 1.4s ease-out forwards; }
+.mg-puff.step { background: #C9F5E6; } .mg-puff.oops { background: #FFE0DC; } .mg-puff.help { background: #D6E7FF; }
+.mg-puff.foot { background: none; border: 0; box-shadow: none; }
+@keyframes mg-puff { 0% { opacity: 0; transform: translate(-50%, 0) scale(.6); } 15% { opacity: 1; transform: translate(-50%, -60%) scale(1.12); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -150%) scale(1); } }
+
+/* 결승 줄 (그림이 없으면 오방색 줄무늬) */
+.mg-goal { position: relative; container-type: size; min-height: 40px; }
+.mg-rope { position: absolute; top: 2px; bottom: 2px; left: 50%; width: 10px; transform: translateX(-50%); border: 2px solid var(--ink); border-radius: 6px;
+  background: repeating-linear-gradient(180deg, #FF6F61 0 10px, #FFE14D 10px 20px, #3D8BFF 20px 30px, #fff 30px 40px, #2ED3A0 40px 50px); }
+.mg-rope img { position: absolute; left: 50%; top: 50%; width: 100cqh; height: 34px; object-fit: fill; transform: translate(-50%, -50%) rotate(90deg); }
+.mg-rope.ok { background: none; border: 0; }
+
+/* 술래 (나무 보기 ↔ 돌아보기). 그림이 없으면 말랑한 도깨비 스티커 + 🙈/👀 */
+.mg-sulaebox { display: grid; place-items: center; min-width: 0; }
+.mg-sulae { position: relative; width: 100%; aspect-ratio: 1; max-height: 100%; }
+.mg-sulae.turn { animation: mg-turn .36s ease-in-out; }
+@keyframes mg-turn { 0% { transform: scaleX(1); } 45% { transform: scaleX(.06) scaleY(1.04); } 100% { transform: scaleX(1); } }
+.mg-sbob { position: absolute; inset: 0; animation: mg-sway 1.1s ease-in-out infinite; transform-origin: 50% 95%; z-index: 1; }
+@keyframes mg-sway { 25% { transform: rotate(-2.5deg); } 75% { transform: rotate(2.5deg); } }
+.mg-sulae.look .mg-sbob { animation: none; }
+.mg-sart { position: absolute; inset: 0; }
+.mg-sart img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 2px #fff) drop-shadow(3px 4px 0 rgba(27,42,74,.3)); }
+.mg-sart.look, .mg-sulae.look .mg-sart:not(.look) { visibility: hidden; }
+.mg-sulae.look .mg-sart.look { visibility: visible; }
+.mg-sshadow { position: absolute; left: 22%; right: 22%; bottom: 0; height: 7%; border-radius: 50%; background: rgba(27,42,74,.18); }
+.mg-blob { display: none; position: absolute; inset: 14% 10% 4%; place-items: center; border: 3px solid var(--ink); box-shadow: var(--hard-sm);
+  background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.75) 0 9%, transparent 10%), #FFB86B; border-radius: 50% 50% 44% 44% / 58% 58% 42% 42%; }
+.mg-blob .horn { position: absolute; top: -14%; width: 16%; height: 20%; background: #FFE14D; border: 3px solid var(--ink); border-radius: 50% 50% 18% 18% / 70% 70% 30% 30%; }
+.mg-blob .horn.l { left: 24%; transform: rotate(-14deg); } .mg-blob .horn.r { right: 24%; transform: rotate(14deg); }
+.mg-blob span { line-height: 1; font-size: 34px; }
+.mg-blob .l, .mg-sulae.look .mg-blob .b { display: none; }
+.mg-sulae.look .mg-blob .l { display: inline; }
+.mg-sulae:has(.mg-sart.noimg) .mg-blob { display: grid; }
+.mg-sulae:has(.mg-sart.noimg) .mg-sart { display: none; }
+
+/* ---------- 노래 글자 ---------- */
+.mg-chant { display: flex; justify-content: center; flex-wrap: nowrap; gap: .04em; font-family: var(--display); font-size: clamp(26px, 5.4vw, 44px); line-height: 1.15; }
+.mg-chant span { opacity: .18; transition: opacity .1s; display: inline-block; }
+.mg-chant span.gap { margin-right: .32em; }
+.mg-chant span.on { opacity: 1; animation: mg-syl .28s ease-out; }
+@keyframes mg-syl { 0% { transform: translateY(30%) scale(.6); } 60% { transform: translateY(-12%) scale(1.18); } 100% { transform: none; } }
+
+/* ---------- 학생 ---------- */
+.mg-s { max-width: 1240px; margin: 0 auto; padding: 10px 10px 84px; display: flex; flex-direction: column; gap: 10px; }
+.mg-strip { margin: 0; padding: 8px 12px 6px; background: url(../assets/trad/hanji.jpg) center/cover, #FFF8EC; }
+.mg-striphead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mg-title { font-family: var(--display); font-weight: 400; font-size: 19px; }
+.mg-striphead .pill { font-size: 17px; padding: 3px 12px 1px; }
+.mg-striphead .pill b { font-weight: 400; }
+.mg-mysteps.bump { animation: bounce .4s; }
+.mg-strip .mg-sulaebox { padding: 2px 0; }
+.mg-body { display: flex; flex-direction: column; gap: 10px; }
+.mg-left { display: flex; flex-direction: column; gap: 10px; }
+
+/* 노래 / 돌아봄 큰 띠: 색 + 그림 + 글자 (색만으로 알리지 않음) */
+.mg-banner { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: center; border: 4px solid var(--ink); border-radius: 22px;
+  box-shadow: var(--hard); padding: 10px 16px 12px; background: var(--lemon); color: var(--ink); overflow: hidden; transition: background-color .15s; }
+.mg-bicon { grid-row: span 2; font-size: 54px; line-height: 1; filter: drop-shadow(2px 3px 0 rgba(27,42,74,.25)); }
+.mg-bmain { display: block; font-family: var(--display); font-weight: 400; font-size: clamp(24px, 3.4vw, 38px); line-height: 1.1; }
+.mg-bsub { display: block; font-size: 15px; margin-top: 2px; }
+.mg-banner .mg-chant { grid-column: 1 / -1; margin-top: 4px; }
+.mg-pbar { grid-column: 1 / -1; height: 10px; margin-top: 6px; border: 2px solid var(--ink); border-radius: 99px; background: rgba(255,255,255,.6); overflow: hidden; }
+.mg-pbar i { display: block; height: 100%; background: var(--ink); opacity: .55; transform-origin: left; }
+.mg-banner.green { background: var(--mg-green-bg); }
+.mg-banner.green .mg-bicon { animation: mg-sway 1.1s ease-in-out infinite; }
+.mg-banner.red { background-color: var(--mg-red); color: #fff;
+  background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.16) 0 14px, transparent 14px 28px); }
+.mg-banner.red .mg-bmain { text-shadow: 2px 2px 0 var(--ink); }
+.mg-banner.red .mg-pbar i { background: #fff; opacity: .9; }
+.mg-banner.red .mg-bicon { animation: mg-peek .9s ease-in-out infinite; }
+@keyframes mg-peek { 50% { transform: scale(1.12); } }
+.mg-banner.over { background: #fff; }
+.mg-banner.caught { animation: shake .35s; }
+.mg-banner.caught::after { content: '앗, 들켰다! 🤭'; position: absolute; right: 12px; bottom: 24px; font-family: var(--display); font-size: 20px; background: #fff; color: var(--ink);
+  border: 2px solid var(--ink); border-radius: 999px; padding: 1px 10px 0; animation: mg-fade 2.2s forwards; }
+@keyframes mg-fade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+
+/* 우리 모둠 카드 */
+.mg-team { margin: 0; padding: 10px 14px; border-left: 12px solid var(--tc, #8FA3C4); background: #fff; }
+.mg-team.tag { background: #FFF6C9; } .mg-team.arrived { background: #DDF8EE; }
+.mg-tline { margin: 0 0 6px; font-size: 17px; line-height: 1.45; }
+.mg-tline b { font-family: var(--display); font-weight: 400; }
+.mg-thead2 { font-size: 21px; margin-right: 4px; display: inline-flex; align-items: center; gap: 4px; }
+.mg-n { font-size: 26px; color: var(--blue); }
+.mg-need { display: block; margin-top: 2px; font-family: var(--display); color: #C2412F; font-size: 18px; }
+.mg-tline .chip { cursor: default; font-size: 14px; padding: 2px 10px 0; }
+.mg-mems { display: flex; flex-wrap: wrap; gap: 6px; }
+.mg-mem { position: relative; display: flex; flex-direction: column; align-items: center; width: 66px; opacity: .45; filter: grayscale(.8); transition: opacity .2s, filter .2s; }
+.mg-mem small { font-size: 12px; max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mg-mem.on { opacity: 1; filter: none; animation: bounce .4s; }
+.mg-mem.on::after { content: '✔'; position: absolute; right: 6px; top: -4px; width: 20px; height: 20px; border-radius: 50%; background: var(--mint); color: #fff; border: 2px solid var(--ink);
+  font-size: 12px; line-height: 16px; text-align: center; font-weight: 900; }
+.mg-mem.off { opacity: .25; }
+.mg-mem.me small { font-weight: 800; }
+.mg-left2 { margin: 6px 0 0; font-family: var(--display); font-size: 17px; color: var(--ink-2); }
+.mg-left2 b { font-weight: 400; color: var(--ink); font-size: 1.2em; }
+
+/* 문제 + 멈춤 */
+.mg-q { position: relative; min-height: 200px; }
+.mg-q .quiz { margin: 0 auto; }
+.mg-freeze { position: absolute; inset: 0; z-index: 20; display: grid; place-items: end center; padding-bottom: 46px; border-radius: 24px;
+  background: rgba(214, 231, 248, .5); backdrop-filter: grayscale(.7); -webkit-backdrop-filter: grayscale(.7); touch-action: manipulation; cursor: not-allowed; }
+.mg-freeze span { font-family: var(--display); font-size: clamp(24px, 4vw, 32px); text-align: center; line-height: 1.2; background: #fff; border: 3px solid var(--ink); border-radius: 18px;
+  padding: 10px 20px 6px; box-shadow: var(--hard); transform: rotate(-2deg); }
+.mg-q.frozen .choice { filter: grayscale(.85); box-shadow: 0 2px 0 var(--ink); }
+.mg-skiprow { display: flex; justify-content: center; margin-top: 8px; min-height: 0; }
+.mg-wait { margin: 0 auto; max-width: 780px; text-align: center; font-family: var(--display); font-size: 24px; padding: 26px; }
+.mg-wait .em { font-size: 52px; line-height: 1.1; animation: mg-sway 1.4s ease-in-out infinite; }
+@media (min-width: 900px) and (orientation: landscape) {
+  .mg-body { display: grid; grid-template-columns: minmax(330px, .85fr) 1.15fr; align-items: start; }
+  .mg-left { position: sticky; top: 10px; }
+  .mode-mugunghwa .mg-s { --tok: 30px; }
+}
+@media not all and (min-width: 900px) and (orientation: landscape) {
+  .mg-left { display: contents; }
+  .mg-banner { order: 1; } .mg-q { order: 2; } .mg-team { order: 3; }
+}
+@media (max-width: 600px) {
+  .mode-mugunghwa .mg-s { --tok: 22px; }
+  .mg-s .mg-lanes { gap: 2px; padding: 3px 0; }
+  .mg-s .mg-lane { border-width: 1px; }
+  .mg-banner .mg-chant { font-size: 26px; }
+  .mg-s { padding: 6px 6px 80px; gap: 8px; }
+  .mg-title { font-size: 16px; }
+  .mg-track { grid-template-columns: 1fr 10px 48px; }
+  .mg-bicon { font-size: 40px; }
+  .mg-bsub { font-size: 13px; }
+  .mg-banner { padding: 8px 12px 10px; gap: 0 10px; }
+  .mg-mem { width: 56px; }
+  .mg-freeze { padding-bottom: 28px; }
+}
+
+/* ---------- 선생님 TV ---------- */
+.mg-t { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; padding: 12px 16px 14px; height: calc(100vh - 56px); min-height: 560px; }
+.mg-thead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mg-thead h1 { margin: 0; font-size: 34px; }
+.mg-round { font-size: 22px; } .mg-round b { font-weight: 400; }
+.mg-speed { display: inline-flex; align-items: center; gap: 5px; font-family: var(--display); font-size: 18px; background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 3px 5px 3px 12px; box-shadow: var(--hard-sm); }
+.mg-speed .chip { padding: 4px 12px 2px; font-size: 17px; }
+.mg-ttime { font-size: 32px; padding: 5px 18px 2px; } .mg-ttime b { font-weight: 400; }
+.mg-ttime.hurry { background: var(--coral); color: #fff; animation: mg-peek 1s infinite; }
+.mg-stage { --tok: clamp(42px, 7.4vh, 84px); margin: 0; min-height: 0; padding: 12px 16px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; overflow: hidden; border-width: 4px;
+  background: url(../assets/trad/bg_madang.jpg) center/cover, linear-gradient(180deg, #BFE6FF 0, #E6F5FF 30%, #EAD9B6 31%, #DDC597 100%); transition: box-shadow .25s; }
+.mg-stage.green { box-shadow: 0 0 0 7px var(--mg-green), var(--hard); }
+.mg-stage.red { box-shadow: 0 0 0 7px var(--mg-red), var(--hard); }
+.mg-chantbar { position: relative; display: flex; justify-content: center; min-height: 0; }
+.mg-chant.big { font-size: clamp(40px, min(5.6vw, 9vh), 108px); background: rgba(255,255,255,.88); border: 3px solid var(--ink); border-radius: 22px; padding: 6px 28px 0; box-shadow: var(--hard); }
+.mg-stage.red .mg-chant.big { background: #FFE0DC; }
+.mg-callout { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-size: clamp(40px, 5.6vw, 92px); border: 4px solid var(--ink); border-radius: 22px;
+  box-shadow: var(--hard); background: var(--lemon); color: var(--ink); z-index: 3; }
+.mg-stage.red .mg-callout { background-color: var(--mg-red); color: #fff; text-shadow: 3px 3px 0 var(--ink);
+  background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.16) 0 18px, transparent 18px 36px); }
+.mg-callout.pop { animation: pop .25s; }
+.mg-field { min-height: 0; display: flex; }
+.mg-track.big { flex: 1; grid-template-columns: 1fr 28px minmax(180px, 24%); gap: 0 10px; }
+.mg-track.big .mg-lanes { justify-content: space-evenly; gap: 6px; }
+.mg-track.big .mg-lane { height: auto; flex: 1 1 0; max-height: calc(var(--tok) + 34px); min-height: calc(var(--tok) + 6px); padding: 0 12px 0 6px; background: rgba(255,255,255,.7); border: 3px solid var(--ink); }
+.mg-track.big .mg-lname { width: clamp(150px, 15vw, 270px); gap: 8px; }
+.mg-track.big .mg-lname em { display: inline; font-size: clamp(18px, 1.6vw, 26px); }
+.mg-track.big .mg-emb.sm { width: clamp(32px, 5vh, 52px); height: clamp(32px, 5vh, 52px); flex: none; } .mg-track.big .mg-emb.sm b { font-size: 22px; }
+.mg-track.big .mg-tag { font-size: 16px; padding: 1px 8px 0; }
+.mg-track.big .mg-puff { font-size: 22px; padding: 2px 12px 0; }
+.mg-track.big .mg-puff.big { font-size: 26px; }
+.mg-track.big .mg-rope { width: 16px; }
+.mg-track.big .mg-rope img { height: 52px; }
+.mg-track.big .mg-blob span { font-size: clamp(60px, 9vw, 140px); }
+.mg-track.big .mg-sulae { width: 100%; max-width: 100%; }
+.mg-track.big .mg-sulaebox { display: flex; flex-direction: column; align-items: stretch; justify-content: space-between; gap: 8px; min-height: 0; }
+.mg-track.big .mg-sulae { flex: 1 1 auto; min-height: 0; width: auto; aspect-ratio: 1; align-self: center; max-width: 100%; }
+.mg-lt { display: none; flex-direction: column; line-height: 1.1; min-width: 0; }
+.mg-lane.mine .mg-lt { display: inline-flex; }
+.mg-linfo { display: none; }
+.mg-track.big .mg-lt { display: inline-flex; }
+.mg-track.big .mg-linfo { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: var(--display); font-size: clamp(15px, 1.35vw, 24px); color: var(--ink-2); }
+.mg-linfo b { font-weight: 400; color: var(--ink); font-size: 1.15em; }
+.mg-dots { display: inline-flex; gap: 3px; }
+.mg-dots i { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--ink); background: #fff; }
+.mg-dots i.on { background: var(--mint); }
+.mg-feed { flex: none; background: rgba(255,255,255,.92); border: 3px solid var(--ink); border-radius: 16px; padding: 6px 10px; box-shadow: var(--hard-sm); max-height: 34%; overflow: hidden; }
+.mg-feed h3 { margin: 0 0 2px; font-size: 18px; }
+.mg-feed ul { list-style: none; margin: 0; padding: 0; font-size: 14px; line-height: 1.3; }
+.mg-feed li { padding: 2px 0; border-bottom: 1px dashed var(--line); animation: fadein .3s; }
+@media (max-height: 800px) and (min-width: 1000px) {
+  .mg-thead h1 { font-size: 28px; } .mg-ttime { font-size: 28px; } .mg-t { gap: 8px; padding: 8px 14px 10px; }
+  .mg-feed li:nth-child(n+4) { display: none; }
+}
+@media (max-width: 1000px) {
+  .mg-t { height: auto; } .mg-stage { min-height: 70vh; } .mg-feed { display: none; }
+}
+
+/* ---------- 결과 덮개 ---------- */
+.mg-over { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 16px; background: rgba(27,42,74,.5); animation: fadein .2s; }
+.mg-overcard { text-align: center; max-width: 680px; width: 100%; margin: 0; transform: rotate(-1deg); animation: pop .3s; background: url(../assets/trad/hanji.jpg) center/cover, #FFF8EC; }
+.mg-overcard.win { background: var(--lemon); }
+.mg-overcard .em { font-size: 84px; line-height: 1.1; }
+.mg-overcard h2 { justify-content: center; font-size: clamp(28px, 6vw, 46px); margin: 6px 0; }
+.mg-overcard p { font-size: 18px; margin: 4px 0 12px; }
+.mg-overteams { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.mg-overteam { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-size: 19px; background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 3px 12px 3px 4px; opacity: .7; }
+.mg-overteam.ok { opacity: 1; box-shadow: var(--hard-sm); }
+@media (prefers-reduced-motion: reduce) {
+  .mg-sbob, .mg-banner .mg-bicon, .mg-lane.tag .mg-hop, .mg-wait .em { animation: none !important; }
+}

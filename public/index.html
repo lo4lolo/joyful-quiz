@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EEF6FF">
+<title>즐거운 퀴즈 · 참여하기</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⭐%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/student.css">
+</head>
+<body class="paper">
+<!-- 1. 게임 코드 -->
+<section class="screen on" id="s-code">
+  <div class="join-wrap">
+    <h1 class="logo">즐거운<span>퀴즈</span></h1>
+    <form class="card join-card" id="code-form" autocomplete="off">
+      <div class="tape"></div>
+      <label class="field"><span>게임 코드</span>
+        <input class="input code-input" id="j-code" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="0000" required aria-describedby="j-err"></label>
+      <p class="err" id="j-err" role="alert" hidden></p>
+      <button class="btn lemon lg" style="width:100%">다음</button>
+    </form>
+    <p class="center"><a class="btn sm ghost" href="guide.html#student">어떻게 하나요?</a> <a class="btn sm ghost" id="go-album" href="#">🗂 내 스티커북</a></p>
+  </div>
+</section>
+
+<!-- 2. 이름 -->
+<section class="screen" id="s-name">
+  <div class="join-wrap">
+    <form class="card join-card" id="name-form" autocomplete="off">
+      <div class="tape"></div>
+      <h2>이름을 써요</h2>
+      <p class="muted small">번호와 이름 (예: 3 김민지). 선생님이 정한 경우 친구들에게는 재미있는 별명으로 보여요.</p>
+      <input class="input name-input" id="j-name" maxlength="12" placeholder="3 김민지" required>
+      <div class="device-row" role="radiogroup" aria-label="기기">
+        <button type="button" class="chip" data-v="pc" role="radio">💻 컴퓨터·크롬북</button>
+        <button type="button" class="chip" data-v="touch" role="radio">📱 태블릿·휴대폰</button>
+      </div>
+      <p class="err" id="n-err" role="alert" hidden></p>
+      <button class="btn lemon lg" style="width:100%" id="j-go">들어가기</button>
+      <button type="button" class="btn sm ghost back" id="n-back">← 게임 코드 다시 쓰기</button>
+    </form>
+  </div>
+</section>
+
+<!-- 3. 스티커 친구 고르기 -->
+<section class="screen" id="s-avatar">
+  <div class="wrap pick-wrap">
+    <div class="pick-head">
+      <div class="pick-me" id="a-preview"></div>
+      <div>
+        <h2 id="a-name">친구를 골라요</h2>
+        <p class="muted small" id="a-rarity"></p>
+      </div>
+      <button class="btn mint lg" id="a-done">준비 완료!</button>
+    </div>
+    <div class="card">
+      <h3>스티커 친구 <small class="muted" id="a-count"></small></h3>
+      <div class="char-grid" id="a-chars"></div>
+      <div class="pick-row">
+        <div><h3>바탕색</h3><div class="swatches" id="a-color"></div></div>
+        <div><h3>모자</h3><div class="swatches hats" id="a-hat"></div></div>
+      </div>
+      <p class="muted small">🔒 잠긴 친구는 게임에서 받은 칭찬 도장으로 스티커 뽑기를 해서 모아요. (이 기기에만 저장돼요)</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 대기실 -->
+<section class="screen" id="s-wait">
+  <div class="wrap wait-wrap">
+    <div class="wait-me">
+      <div class="bob" id="w-me"></div>
+      <div class="wait-name display" id="w-name"></div>
+      <p class="muted" id="w-room"></p>
+      <button class="btn sm ghost" id="w-edit">친구 바꾸기</button>
+    </div>
+    <div class="card wait-game" id="w-game"></div>
+    <div class="card"><h2>함께하는 친구 <span class="badge" id="w-count">0명</span></h2><div class="players" id="w-players"></div></div>
+  </div>
+</section>
+
+<!-- 5. 게임 -->
+<section class="screen" id="s-game"><div id="game"></div></section>
+
+<!-- 6. 결과 -->
+<section class="screen" id="s-end">
+  <div class="wrap narrow">
+    <div class="card center end-card">
+      <div class="end-rank display" id="e-rank"></div>
+      <div class="podium" id="e-podium"></div>
+      <div class="stat-row" id="e-stats"></div>
+      <div class="reward" id="e-reward"></div>
+      <p class="muted small">선생님이 다시 시작하면 자동으로 이어져요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 스티커북 -->
+<section class="screen" id="s-album">
+  <div class="wrap">
+    <div class="row" style="margin-bottom:12px"><button class="btn sm ghost" id="al-back">← 돌아가기</button><h2 style="margin:0" class="grow">내 스티커북</h2><span class="badge y" id="al-stamps"></span></div>
+    <div class="card">
+      <div class="pack-box">
+        <button class="pack" id="al-open"><span class="pack-face">?</span><span class="pack-label display">스티커 뽑기<br><small>칭찬 도장 10개</small></span></button>
+        <div class="pack-result" id="al-result"></div>
+      </div>
+      <div class="char-grid album" id="al-grid"></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-msg">
+  <div class="join-wrap"><div class="card center"><h2 style="justify-content:center" id="m-text"></h2>
+    <button class="btn lemon lg" id="m-home">처음으로</button></div></div>
+</section>
+<div class="conn" id="conn" hidden>연결이 끊겼어요. 다시 연결하는 중…</div>
+
+<script src="socket.io/socket.io.js"></script>
+<script type="module" src="js/student.js"></script>
+</body>
+</html>

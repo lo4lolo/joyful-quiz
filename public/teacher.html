@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>즐거운 퀴즈 · 선생님</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⭐%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/teacher.css">
+</head>
+<body class="paper">
+<div class="shell" id="shell">
+  <aside class="rail" aria-label="메뉴">
+    <a class="rail-logo display" href="teacher.html">즐거운<span>퀴즈</span></a>
+    <nav>
+      <button class="rail-btn on" data-go="library">🗂 <span>퀴즈 세트</span></button>
+      <button class="rail-btn" data-go="picker" id="rail-play">🎮 <span>게임 열기</span></button>
+      <a class="rail-btn" href="analyze.html" target="_blank">📊 <span>분석실</span></a>
+      <a class="rail-btn" href="guide.html#teacher" target="_blank">❔ <span>사용법</span></a>
+    </nav>
+    <div class="rail-foot">
+      <button class="rail-btn small" id="btn-folder" title="수업 기록을 저장할 내 컴퓨터 폴더">💾 <span>기록 폴더<br><b id="folder-name">연결 안 됨</b></span></button>
+      <p class="privacy">🔒 학생 기록은 서버에 남지 않고 선생님 컴퓨터에만 저장돼요.</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- 보관함 -->
+    <section class="screen on" id="s-library">
+      <header class="pagehead">
+        <h1>내 퀴즈 세트</h1>
+        <div class="row">
+          <button class="btn lemon" id="lib-new">+ 새 세트 만들기</button>
+          <button class="btn grape" id="lib-ai">🤖 AI로 문제 만들기</button>
+          <label class="btn" id="lib-import">📥 엑셀 가져오기<input type="file" id="lib-file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json" hidden></label>
+        </div>
+      </header>
+      <div class="sets" id="sets"></div>
+      <div class="card flow">
+        <h2>단원 정리 수업, 이렇게 해 보세요</h2>
+        <div class="flow-steps">
+          <div><b>도입 5분</b><span>🔔 골든벨로 기억 확인</span></div>
+          <div><b>전개 15분</b><span>💸 퀴즈 부자 · 🎣 낚시 · 💰 보물 상자로 각자 연습</span></div>
+          <div><b>정리 15분</b><span>🏎️ 카트 · 🐲 보스전 · ⚔️ 대결로 마무리</span></div>
+          <div><b>수업 뒤</b><span>📊 분석실에서 다시 가르칠 문제 확인</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 세트 편집 -->
+    <section class="screen" id="s-editor">
+      <header class="pagehead">
+        <button class="btn sm ghost" id="ed-back">← 보관함</button>
+        <input class="input title-input" id="title" maxlength="30" placeholder="세트 이름 (예: 4학년 과학 · 지층과 화석)">
+        <button class="btn mint" id="ed-play">이 세트로 게임 열기 ▶</button>
+      </header>
+      <div class="card">
+        <div class="toolbar">
+          <span class="badge y" id="q-count">문제 0개</span>
+          <span class="grow"></span>
+          <button class="btn sm grape" id="btn-ai">🤖 AI로 만들기</button>
+          <button class="btn sm" id="btn-tpl">📄 엑셀 양식</button>
+          <label class="btn sm" id="btn-up">📥 엑셀 올리기<input type="file" id="file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json" hidden></label>
+          <button class="btn sm" id="btn-down">💾 엑셀로 저장</button>
+          <button class="btn sm ghost" id="btn-clear">모두 지우기</button>
+        </div>
+        <p class="hint">오답 칸을 비우면 <b>단답형</b>, 정답에 <b>O</b>나 <b>X</b>만 쓰면 <b>OX</b>, 오답까지 쓰면 <b>객관식</b>이에요. 인정할 답이 여럿이면 <b>/</b>로 나눠요 (예: 세종대왕/세종).
+          엑셀에서 여러 줄을 복사해 문제 칸에 붙여넣어도 한 번에 들어가요.</p>
+        <div class="ed-grid">
+          <div class="qtable-wrap"><table class="tbl qtable">
+            <thead><tr><th class="n">#</th><th>문제</th><th>정답</th><th>오답 1</th><th>오답 2</th><th>오답 3</th><th>해설</th><th>종류</th><th></th></tr></thead>
+            <tbody id="q-rows"></tbody></table></div>
+          <aside class="preview"><h3>학생 화면 미리보기</h3><div id="preview"></div></aside>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn sm" id="add1">+ 문제 추가</button><button class="btn sm" id="add5">+ 5줄</button>
+          <span class="grow"></span><span class="muted small" id="q-summary"></span></div>
+      </div>
+    </section>
+
+    <!-- 게임 고르기 -->
+    <section class="screen" id="s-picker">
+      <header class="pagehead">
+        <button class="btn sm ghost" id="pk-back">← 세트 편집</button>
+        <h1 class="grow">게임 고르기 <small class="muted" id="pk-set"></small></h1>
+      </header>
+      <div class="boxes" id="modes"></div>
+    </section>
+
+    <!-- 대기실 -->
+    <section class="screen" id="s-lobby">
+      <div class="lobby">
+        <div class="join-banner">
+          <div class="jb-left">
+            <div class="jb-label">이 주소로 들어와요</div>
+            <div class="jb-addr display" id="l-addr"></div>
+            <div class="jb-label">게임 코드</div>
+            <div class="room-code" id="l-code">----</div>
+          </div>
+          <div class="qr" id="l-qr"></div>
+        </div>
+        <div class="lobby-bar">
+          <span class="pill" id="l-mode"></span>
+          <span class="pill">👫 <b id="l-count">0</b>명</span>
+          <span class="grow"></span>
+          <button class="btn sm" id="l-lock">🔓 입장 열림</button>
+          <button class="btn sm" id="l-music">🎵 음악</button>
+          <button class="btn sm" id="l-full">📺 전체 화면</button>
+          <button class="btn sm ghost" id="l-back">⚙️ 설정 바꾸기</button>
+          <button class="btn mint xl" id="l-start" disabled>게임 시작</button>
+        </div>
+        <div class="team-bar" id="l-teams">
+          <span class="display">모둠</span>
+          <div class="chips" id="l-teamcount"><button class="chip" data-n="0">없음</button><button class="chip" data-n="2">2</button><button class="chip" data-n="3">3</button><button class="chip" data-n="4">4</button><button class="chip" data-n="5">5</button><button class="chip" data-n="6">6</button></div>
+          <button class="btn sm ghost" id="l-shuffle">🔀 다시 섞기</button>
+          <span class="muted small" id="l-teamhint"></span>
+        </div>
+        <div class="crowd" id="l-players"></div>
+        <p class="lan-note muted small" id="l-lan"></p>
+      </div>
+    </section>
+
+    <!-- 진행 -->
+    <section class="screen" id="s-play">
+      <div class="playbar">
+        <span class="pill" id="p-mode"></span><span class="pill">코드 <b id="p-code"></b></span><span class="pill">👫 <b id="p-count">0</b></span>
+        <span class="pill" id="p-acc" title="지금까지 정답률">✅ -</span>
+        <span class="grow"></span>
+        <button class="btn sm" id="p-alerts" title="도움이 필요할 수 있는 학생·모둠">👀 교사 알림 <b id="p-alert-n">0</b></button>
+        <button class="btn sm" id="p-full">📺</button>
+        <button class="btn sm coral" id="p-end">게임 끝내기</button>
+      </div>
+      <div id="stage"></div>
+      <aside class="alerts" id="alerts" hidden><div class="alerts-head"><h3>👀 교사 알림</h3><button class="btn sm ghost" id="al-close">닫기</button></div>
+        <p class="muted small">앱은 판단하지 않고 살펴볼 곳만 알려 줘요. 정체 4분 · 연속 오답 2번 · 모둠 기여 15% 미만 · 혼자 50% 넘게 풀기</p><div id="alert-list"></div></aside>
+    </section>
+
+    <!-- 결과 -->
+    <section class="screen" id="s-result">
+      <div class="wrap">
+        <div class="card center result-hero">
+          <h1 id="r-title"></h1>
+          <div class="podium" id="r-podium"></div>
+          <div class="save-box" id="r-save" role="status"></div>
+          <div class="row" style="justify-content:center;margin-top:14px">
+            <button class="btn mint lg" id="r-again">한 판 더 🔁</button>
+            <button class="btn lemon" id="r-change">다른 게임 고르기</button>
+            <button class="btn blue" id="r-analyze">📊 분석실에서 보기</button>
+            <button class="btn" id="r-savebtn">📥 결과 다시 저장</button>
+            <button class="btn ghost" id="r-new">방 닫기</button>
+          </div>
+        </div>
+        <div class="result-grid">
+          <div class="card"><h2 id="r-board-title">순위</h2><div class="board" id="r-board"></div>
+            <div id="r-coop-private" hidden></div></div>
+          <div class="card"><h2>문제별 정답률</h2><p class="muted small">정답률이 낮은 문제부터 보여요. 많이 고른 오답은 오개념일 수 있어요.</p><div id="r-qstats"></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 게임 설정 -->
+<div class="modal" id="set-modal" hidden>
+  <div class="card setsheet">
+    <div class="sheet-head">
+      <img id="sm-art" alt=""><div><h2 id="sm-title"></h2><p class="muted" id="sm-desc"></p></div>
+    </div>
+    <div id="settings"></div>
+    <div class="setrow"><span>학생 이름</span><div class="chips" id="nick-chips">
+      <button class="chip" data-v="0">입력한 이름 그대로</button><button class="chip" data-v="1">재미있는 별명으로 보이기<small>선생님 기록에는 실제 이름</small></button></div></div>
+    <div class="row" style="margin-top:16px"><button class="btn ghost" id="sm-cancel">취소</button><span class="grow"></span><button class="btn mint lg" id="sm-open">방 열기</button></div>
+  </div>
+</div>
+
+<!-- AI 문제 만들기 -->
+<div class="modal" id="ai-modal" hidden>
+  <div class="card">
+    <h2>🤖 AI로 문제 만들기 <span class="grow"></span><button class="btn sm ghost" id="ai-close">닫기</button></h2>
+    <div class="ai-flow">
+      <div><b>고르기</b>아래 조건을 고르면 요청문이 완성돼요</div>
+      <div><b>복사하기</b>ChatGPT·Gemini·Claude에 붙여넣고, 교과서 쪽이나 학습지를 함께 올려요</div>
+      <div><b>가져오기</b>받은 엑셀을 <b>📥 엑셀 올리기</b>로 넣고 정답을 한 번 확인해요</div>
+    </div>
+    <div class="ai-grid">
+      <label class="field"><span>학년</span><select class="input" id="ai-grade"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+      <label class="field"><span>과목</span><select class="input" id="ai-subject"><option>국어</option><option>수학</option><option selected>사회</option><option>과학</option><option>영어</option><option>도덕</option><option>실과</option><option>음악</option><option>미술</option><option>체육</option><option>바른 생활</option><option>슬기로운 생활</option><option>즐거운 생활</option></select></label>
+      <label class="field"><span>문제 수</span><input class="input" id="ai-count" type="number" min="5" max="60" value="20"></label>
+      <label class="field"><span>문제 모양</span><select class="input" id="ai-type">
+        <option value="mc">모두 4지선다 (태블릿 반)</option><option value="mix" selected>4지선다 + OX 조금</option><option value="mixshort">4지선다 + 짧은 답 조금</option><option value="short">짧은 답 위주</option></select></label>
+      <label class="field"><span>수준</span><select class="input" id="ai-level"><option value="easy">기초 개념</option><option value="mid" selected>단원 정리</option><option value="hard">생각을 넓히는 문제 섞기</option></select></label>
+      <label class="field"><span>오답 만들기</span><select class="input" id="ai-wrong"><option value="mis" selected>아이들이 자주 헷갈리는 생각으로</option><option value="plain">비슷한 낱말로</option></select></label>
+    </div>
+    <label class="field"><span>단원·범위 <small class="muted">(선택)</small></span><input class="input" id="ai-scope" placeholder="예: 2단원 지층과 화석 / 교과서 40~55쪽"></label>
+    <textarea class="input" id="ai-prompt" rows="9" readonly></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn lemon lg" id="ai-copy">요청문 복사</button><span id="ai-copied" class="muted"></span></div>
+    <p class="warn">학생 이름·사진 같은 개인정보가 담긴 자료는 올리지 마세요. 학교가 허용한 AI 서비스를 선생님 계정으로 써 주세요.</p>
+  </div>
+</div>
+
+<!-- 선생님 PIN (인터넷 배포 시) -->
+<div class="modal" id="pin-modal" hidden>
+  <form class="card" id="pin-form" style="width:min(420px,100%)">
+    <h2>선생님 PIN</h2>
+    <p class="muted">이 서버는 방을 만들 때 선생님 PIN이 필요해요.</p>
+    <input class="input code-input" id="pin" inputmode="numeric" maxlength="12" autocomplete="off">
+    <div class="row" style="margin-top:12px"><button type="button" class="btn ghost" id="pin-cancel">취소</button><span class="grow"></span><button class="btn mint">확인</button></div>
+  </form>
+</div>
+
+<script src="socket.io/socket.io.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+<script type="module" src="js/teacher.js"></script>
+</body>
+</html>

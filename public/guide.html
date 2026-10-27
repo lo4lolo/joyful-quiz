@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>즐거운 퀴즈 사용법</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎉%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/guide.css">
+</head>
+<body class="paper">
+<div class="wrap" style="max-width:980px">
+  <h1 class="logo">즐거운 <span>퀴즈</span></h1>
+  <p class="tagline">문제를 풀면 게임이 신나진다! · 교실용 단원 정리 퀴즈 놀이터 사용법</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" data-tab="intro">🎉 소개</button>
+    <button class="tab" data-tab="teacher">👩‍🏫 선생님용</button>
+    <button class="tab" data-tab="student">🧒 학생용</button>
+    <button class="tab" data-tab="analyze">📊 분석실</button>
+    <button class="tab" data-tab="safe">🔒 개인정보</button>
+  </div>
+
+  <section class="panel" id="intro">
+    <div class="card hero">
+      <img src="assets/img/kart_hero.png" alt="카트를 탄 귀여운 캐릭터" class="hero-img">
+      <div>
+        <h2>한 번 넣은 문제로 열한 가지 게임</h2>
+        <p class="sys">문제를 한 번 넣으면 <b>전통놀이 3종(줄다리기·무궁화 꽃·윷놀이)과 골든벨·퀴즈 부자·낚시 대회·보물 상자·땅따먹기·보스전·뿅망치 대결·카트 레이스</b> 중 원하는 게임으로 바로 단원 정리를 할 수 있어요. 끝나면 문제별 정답률과 오개념을 분석실에서 바로 확인해요.</p>
+        <p class="sys">최대 40명 · 크롬북·태블릿·컴퓨터 · 학생 설치와 회원 가입 없음.</p>
+        <a class="btn lemon lg" href="teacher.html">선생님 화면 열기</a>
+      </div>
+    </div>
+    <div class="modes4" id="g-modes"></div>
+    <div class="card">
+      <h2>🧭 단원 정리 수업 흐름 (예시 40분)</h2>
+      <ol class="nums">
+        <li><b>도입 5분 · 🔔 골든벨 라이브</b> — 지난 차시 핵심 5문제로 무엇을 기억하는지 확인해요.<small>정답 분포를 보며 바로 짚어 줄 개념을 정해요.</small></li>
+        <li><b>전개 15분 · 💰 보물 상자</b> — 각자 자기 속도로 단원 전체 문제를 반복해요.<small>틀린 문제는 다시 나오니 자연스럽게 복습돼요.</small></li>
+        <li><b>정리 15분 · 🏎️ 카트 레이스 또는 🚩 땅따먹기</b> — 신나게 마무리!<small>퀴즈 도장이 있어 문제를 피하고 달릴 수 없어요.</small></li>
+        <li><b>수업 뒤 · 📊 분석실</b> — 다시 가르칠 문제 TOP 3, 오개념 후보, 도움이 필요한 학생을 확인해요.<small>AI 도움 프롬프트로 다음 차시 계획까지 쉽게.</small></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="panel" id="teacher">
+    <div class="card">
+      <h2><span class="who t">선생님</span> 주소</h2>
+      <div class="addr"><a id="t-url" href="teacher.html"></a><button class="copy" data-copy="t-url">주소 복사</button></div>
+      <a class="btn lemon" style="margin-top:10px" href="teacher.html">선생님 화면 열기</a>
+    </div>
+    <div class="card">
+      <h2>수업 준비 순서</h2>
+      <ol class="nums">
+        <li><b>퀴즈 세트 만들기</b> — 보관함에서 <b>새 세트</b>를 누르고 표에 문제를 써요. 오답까지 쓰면 객관식, 정답만 쓰면 단답형, O·X는 OX.<small>엑셀 양식으로 한꺼번에 올리거나 엑셀에서 여러 줄을 복사해 붙여넣어도 돼요. 오른쪽에 학생 화면 미리보기가 보여요.</small></li>
+        <li><b>AI로 만들기</b> — 학년·과목·문제 모양을 고르면 요청문이 완성돼요. 복사해서 교과서 쪽과 함께 AI에 보내고, 받은 엑셀을 올려요.<small>정답은 꼭 한 번 확인해요.</small></li>
+        <li><b>게임 고르기</b> — 8가지 게임 상자 중 하나를 누르고 설정을 정해요. <b>재미있는 별명</b>을 켜면 친구들 화면에는 별명이, 선생님 기록에는 실제 이름이 남아요.</li>
+        <li><b>방 열기 → 게임 시작</b> — TV에 주소·게임 코드·QR이 크게 나와요. 학생 스티커가 다 모이면 <b>게임 시작</b>. 다 들어오면 <b>입장 잠금</b>.</li>
+        <li><b>결과</b> — 순위와 문제별 정답률이 나오고 기록(JSON+엑셀)이 선생님 컴퓨터에 자동 저장돼요. <b>한 판 더</b> 또는 <b>다른 게임 고르기</b>로 같은 학생들과 바로 이어 해요.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>알아 두면 좋아요</h2>
+      <div class="keys">
+        <div class="key"><b>📂</b>퀴즈 세트는 이 컴퓨터 브라우저에 저장돼요. 다른 PC로는 엑셀로 옮겨요.</div>
+        <div class="key"><b>💾</b>왼쪽 메뉴의 기록 폴더를 연결하면 결과가 그 폴더에 모여요 (크롬·엣지).</div>
+        <div class="key"><b>📺</b>대기실·진행 화면은 TV용이에요. 전체 화면 버튼을 눌러요.</div>
+        <div class="key"><b>📱</b>태블릿 학생에게는 단답형도 보기 4개로 나와요.</div>
+        <div class="key"><b>🌐</b>인터넷 배포 방법은 docs/DEPLOY.md 에 있어요.</div>
+        <div class="key"><b>🔒</b>학생 기록은 서버에 저장되지 않아요.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="student">
+    <div class="card">
+      <h2><span class="who s">학생</span> 주소</h2>
+      <div class="addr"><a id="s-url" href="./"></a><button class="copy" data-copy="s-url">주소 복사</button></div>
+    </div>
+    <div class="card">
+      <h2>이렇게 들어가요</h2>
+      <ol class="nums">
+        <li>주소에 들어가거나 QR을 찍고 <b>게임 코드 4자리</b>를 써요.</li>
+        <li><b>번호와 이름</b>을 쓰고 컴퓨터인지 태블릿인지 골라요. <small>선생님이 별명 모드를 켜면 친구들에게는 재미있는 별명으로 보여요.</small></li>
+        <li><b>스티커 친구</b>를 고르고 바탕색·모자를 꾸민 뒤 <b>준비 완료!</b></li>
+        <li>게임이 끝나면 <b>칭찬 도장</b>을 받아요. 도장 10개로 <b>스티커 뽑기</b>를 해서 희귀·전설 친구를 모아요. <small>스티커북은 이 기기에만 저장돼요.</small></li>
+      </ol>
+      <div class="keys">
+        <div class="key"><b>1~4</b>보기 고르기</div><div class="key"><b>←→↑</b>카트 운전</div>
+        <div class="key"><b>Space</b>아이템 · 낚싯줄 감기</div><div class="key"><b>새로고침</b>같은 기기면 자동으로 다시 들어가요</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="analyze">
+    <div class="card">
+      <h2>📊 분석실</h2>
+      <ol class="nums">
+        <li>게임이 끝나면 결과 화면의 <b>📊 분석실에서 자세히 보기</b>를 눌러요.<small>방금 끝난 기록이 바로 열려요.</small></li>
+        <li>지난 기록은 <b>기록 파일 열기</b>로 여러 개를 한꺼번에 열어요. 같은 이름의 학생은 합쳐서 단원 전체를 볼 수 있어요.</li>
+        <li><b>다시 가르칠 문제 TOP 3</b>, <b>오개념 후보</b>(많이 고른 오답), <b>학생×문항</b> 표, <b>차시 비교</b>를 확인해요.</li>
+        <li><b>🤖 AI 도움</b>에서 다음 차시 수업 설계·보충 문제 만들기 프롬프트를 복사해요. 학생 이름은 자동으로 가려져요.</li>
+        <li><b>엑셀로 저장</b>하거나 <b>인쇄</b>해서 협의회 자료로 써요.</li>
+      </ol>
+      <a class="btn v" href="analyze.html">분석실 열기 →</a>
+    </div>
+  </section>
+
+  <section class="panel" id="safe">
+    <div class="card">
+      <h2>🔒 학생 기록은 선생님 컴퓨터에만</h2>
+      <ol class="nums">
+        <li>학생 이름과 답은 <b>수업하는 동안에만 서버 메모리</b>에 잠깐 있어요. 서버의 하드디스크나 데이터베이스에 저장하지 않아요.</li>
+        <li>선생님이 <b>새 방 만들기</b>로 방을 닫으면 곧바로 지워지고, 닫지 않아도 4시간이 지나면 자동으로 지워져요.</li>
+        <li>결과는 <b>선생님 컴퓨터에 파일(JSON 기록 + 엑셀)</b>로 저장돼요. 분석실은 이 파일을 브라우저 안에서만 열고, 어디로도 보내지 않아요.</li>
+        <li>학생은 회원 가입이 없고, <b>번호와 이름(또는 별명)</b>만 써요. 실명 대신 번호만 써도 돼요.</li>
+        <li>AI 프롬프트에는 학생 이름 대신 ‘학생 A, 학생 B’로 들어가요. 학교에서 허용한 AI 서비스를 써 주세요.</li>
+      </ol>
+    </div>
+  </section>
+  <footer>즐거운 퀴즈 · <a href="teacher.html">선생님 화면</a> · <a href="./">학생 입장</a></footer>
+</div>
+<script type="module" src="js/guide.js"></script>
+</body>
+</html>

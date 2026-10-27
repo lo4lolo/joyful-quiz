@@ -1,0 +1,100 @@
+[
+ {
+  "id": "minnow",
+  "name": "송사리",
+  "rarity": "common",
+  "weightMin": 0.01,
+  "weightMax": 0.05
+ },
+ {
+  "id": "goldfish",
+  "name": "금붕어",
+  "rarity": "common",
+  "weightMin": 0.05,
+  "weightMax": 0.3
+ },
+ {
+  "id": "carp",
+  "name": "붕어",
+  "rarity": "common",
+  "weightMin": 0.3,
+  "weightMax": 2.0
+ },
+ {
+  "id": "mackerel",
+  "name": "고등어",
+  "rarity": "common",
+  "weightMin": 0.3,
+  "weightMax": 1.2
+ },
+ {
+  "id": "pufferfish",
+  "name": "복어",
+  "rarity": "uncommon",
+  "weightMin": 0.5,
+  "weightMax": 3.0
+ },
+ {
+  "id": "clownfish",
+  "name": "흰동가리",
+  "rarity": "uncommon",
+  "weightMin": 0.1,
+  "weightMax": 0.3
+ },
+ {
+  "id": "squid",
+  "name": "오징어",
+  "rarity": "uncommon",
+  "weightMin": 0.3,
+  "weightMax": 2.0
+ },
+ {
+  "id": "swordfish",
+  "name": "황새치",
+  "rarity": "rare",
+  "weightMin": 30.0,
+  "weightMax": 150.0
+ },
+ {
+  "id": "octopus2",
+  "name": "문어",
+  "rarity": "rare",
+  "weightMin": 2.0,
+  "weightMax": 10.0
+ },
+ {
+  "id": "whale_baby",
+  "name": "아기 고래",
+  "rarity": "rare",
+  "weightMin": 200.0,
+  "weightMax": 900.0
+ },
+ {
+  "id": "rainbow_trout",
+  "name": "무지개송어",
+  "rarity": "epic",
+  "weightMin": 1.0,
+  "weightMax": 6.0
+ },
+ {
+  "id": "golden_koi",
+  "name": "황금 잉어",
+  "rarity": "epic",
+  "weightMin": 3.0,
+  "weightMax": 15.0
+ },
+ {
+  "id": "boot",
+  "name": "낡은 장화",
+  "rarity": "junk",
+  "weightMin": 0.5,
+  "weightMax": 1.5
+ },
+ {
+  "id": "can",
+  "name": "빈 깡통",
+  "rarity": "junk",
+  "weightMin": 0.05,
+  "weightMax": 0.2
+ }
+]

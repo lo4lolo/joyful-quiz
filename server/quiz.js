@@ -20,7 +20,9 @@ export function cleanQuestions(list) {
     const q = clip(raw.q, 300);
     let answers = (Array.isArray(raw.answers) ? raw.answers : String(raw.answers ?? raw.a ?? '').split('/'))
       .flatMap(a => String(a).split('/')).map(a => clip(a, 80)).filter(Boolean).slice(0, 6);
-    const wrong = (Array.isArray(raw.wrong) ? raw.wrong : []).map(w => clip(w, 80)).filter(Boolean).slice(0, 3);
+    answers = [...new Map(answers.map(a => [norm(a), a])).values()];
+    const wrong = [...new Map((Array.isArray(raw.wrong) ? raw.wrong : []).map(w => clip(w, 80))
+      .filter(w => w && !answers.some(a => norm(a) === norm(w))).map(w => [norm(w), w])).values()].slice(0, 3);
     if (!q || !answers.length) continue;
     let kind = wrong.length ? 'mc' : 'short';
     if (!wrong.length && answers.length === 1 && isOX(answers[0])) { kind = 'ox'; answers = [toOX(answers[0])]; }

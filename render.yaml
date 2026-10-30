@@ -9,8 +9,10 @@ services:
     healthCheckPath: /api/info
     envVars:
       - key: NODE_VERSION
-        value: "20"
+        value: "22"
       - key: TEACHER_PIN
         sync: false   # 대시보드에서 선생님만 아는 숫자를 넣어요 (방 만들기 잠금)
       - key: ALLOWED_ORIGINS
         sync: false   # GitHub Pages 화면 주소 (예: https://아이디.github.io) — 여러 개면 쉼표로
+      - key: PUBLIC_URL
+        sync: false   # 학생이 접속할 Pages 주소 (예: https://아이디.github.io/joyful-quiz/)

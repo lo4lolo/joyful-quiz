@@ -8,7 +8,8 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/teacher.css">
 </head>
-<body class="paper">
+<body class="paper teacher-ui">
+<a class="skip-link" href="#main-content">본문으로 바로 가기</a>
 <div class="shell" id="shell">
   <aside class="rail" aria-label="메뉴">
     <a class="rail-logo display" href="teacher.html">즐거운<span>퀴즈</span></a>
@@ -16,31 +17,35 @@
       <button class="rail-btn on" data-go="library">🗂 <span>퀴즈 세트</span></button>
       <button class="rail-btn" data-go="picker" id="rail-play">🎮 <span>게임 열기</span></button>
       <a class="rail-btn" href="analyze.html" target="_blank">📊 <span>분석실</span></a>
-      <a class="rail-btn" href="guide.html#teacher" target="_blank">❔ <span>사용법</span></a>
+      <a class="rail-btn" href="teacher-guide.html" target="_blank" rel="noopener">❔ <span>교사용 가이드 ↗</span></a>
     </nav>
     <div class="rail-foot">
       <button class="rail-btn small" id="btn-folder" title="수업 기록을 저장할 내 컴퓨터 폴더">💾 <span>기록 폴더<br><b id="folder-name">연결 안 됨</b></span></button>
       <p class="srv" id="srv-state">서버 확인 중…</p>
-      <p class="privacy">🔒 학생 기록은 서버에 남지 않고 선생님 컴퓨터에만 저장돼요.</p>
+      <p class="privacy">학생 응답은 수업 중 메모리에서 처리해요. 보관할 결과는 내 PC에 저장하세요.</p>
     </div>
   </aside>
 
-  <main class="main">
+  <main class="main" id="main-content" tabindex="-1">
+    <nav class="lesson-path" aria-label="수업 진행 단계"><span data-step="library">1 · 문제 준비</span><span data-step="picker">2 · 게임 선택</span><span data-step="lobby">3 · 학생 초대</span><span data-step="result">4 · 결과와 복습</span><a href="teacher-guide.html" target="_blank" rel="noopener">도움말 ↗</a></nav>
     <!-- 보관함 -->
     <section class="screen on" id="s-library">
-      <div class="motto">
-        <p class="motto-main display">아이들은 <span class="hl">즐겁게 퀴즈를 풀고</span>, 선생님은 <span class="hl">한눈에 분석해요</span></p>
-        <p class="muted">정답률만이 아니라 오개념, 응답 시간, 다시 만난 문제, 게임 속 행동, 모둠 협력까지 — 결과는 선생님 컴퓨터에만 저장돼요.</p>
-      </div>
+      <section class="teacher-welcome" aria-labelledby="welcome-title">
+        <div><p class="eyebrow">선생님의 수업 준비실 · v0.6</p><h1 id="welcome-title">문제를 골라,<br>배움이 있는 한 판을.</h1><p>처음이라면 예시 12문제로 수업 흐름을 익혀 보세요.<br>내 문제는 아래 보관함에서 준비할 수 있어요.</p><div class="row"><button class="btn lemon" id="quick-start">예시로 수업 준비하기 →</button><a href="teacher-guide.html#first" class="text-link" target="_blank" rel="noopener">첫 수업 5분 안내 ↗</a></div></div>
+        <img src="assets/img/kart_hero.webp" alt="퀴즈 카트를 타고 출발을 기다리는 친구" width="240" height="180">
+      </section>
       <header class="pagehead">
-        <h1>내 퀴즈 세트</h1>
+        <h2>내 퀴즈 세트 <span class="library-count" id="lib-total"></span></h2>
         <div class="row">
           <button class="btn lemon" id="lib-new">+ 새 세트 만들기</button>
           <button class="btn grape" id="lib-ai">🤖 AI로 문제 만들기</button>
-          <label class="btn" id="lib-import">📥 엑셀 가져오기<input type="file" id="lib-file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json" hidden></label>
+          <button class="btn" id="lib-import" data-file-input="lib-file">📥 엑셀 가져오기</button><input type="file" id="lib-file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json" hidden>
         </div>
       </header>
+      <div class="library-filter"><label for="lib-search">세트 찾기</label><input class="input" id="lib-search" type="search" placeholder="세트 이름 또는 문제로 검색" autocomplete="off"><label class="sr-only" for="lib-sort">세트 정렬</label><select class="input" id="lib-sort"><option value="recent">최근 수정순</option><option value="title">이름순</option></select><span id="lib-match" role="status" aria-live="polite"></span></div>
+      <div class="library-tools"><p>이 브라우저에 자동 저장 · PC 이동 전에는 백업하세요.</p><div class="row"><button class="btn sm" id="lib-backup">💾 보관함 백업</button><button class="btn sm" data-file-input="lib-restore">📂 보관함 복원</button><input type="file" id="lib-restore" accept=".json" hidden></div></div>
       <div class="sets" id="sets"></div>
+      <div class="teacher-support"><a href="practice.html"><b>🏎️ 혼자 카트 연습</b><span>학생 초대 없이 주행·퀴즈·복습 익히기 →</span></a><a href="teacher-guide.html#backup" target="_blank" rel="noopener"><b>💾 다른 PC에서도 이어서</b><span>보관함 백업과 수업 결과, 무엇을 옮길까요? ↗</span></a></div>
       <div class="card flow">
         <h2>단원 정리 수업, 이렇게 해 보세요</h2>
         <div class="flow-steps">
@@ -56,27 +61,30 @@
     <section class="screen" id="s-editor">
       <header class="pagehead">
         <button class="btn sm ghost" id="ed-back">← 보관함</button>
-        <input class="input title-input" id="title" maxlength="30" placeholder="세트 이름 (예: 4학년 과학 · 지층과 화석)">
+        <label class="title-field" for="title"><span>세트 이름</span><input class="input title-input" id="title" maxlength="30" placeholder="예: 4학년 과학 · 지층과 화석"></label>
         <button class="btn mint" id="ed-play">이 세트로 게임 열기 ▶</button>
       </header>
+      <div class="editor-status"><span id="save-state" role="status" aria-live="polite">이 브라우저에 자동 저장돼요.</span><a href="teacher-guide.html#questions" target="_blank" rel="noopener">문제 입력 방법 ↗</a></div>
+      <div id="editor-errors" class="editor-errors" tabindex="-1" hidden aria-labelledby="editor-error-title"><h2 id="editor-error-title">게임 전에 확인해 주세요</h2><div id="editor-error-list"></div></div>
       <div class="card">
         <div class="toolbar">
           <span class="badge y" id="q-count">문제 0개</span>
           <span class="grow"></span>
           <button class="btn sm grape" id="btn-ai">🤖 AI로 만들기</button>
           <button class="btn sm" id="btn-tpl">📄 엑셀 양식</button>
-          <label class="btn sm" id="btn-up">📥 엑셀 올리기<input type="file" id="file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json" hidden></label>
+          <button class="btn sm" id="btn-up" data-file-input="file">📥 엑셀 올리기</button><input type="file" id="file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json" hidden>
           <button class="btn sm" id="btn-down">💾 엑셀로 저장</button>
           <button class="btn sm ghost" id="btn-clear">모두 지우기</button>
         </div>
         <p class="hint">오답 칸을 비우면 <b>단답형</b>, 정답에 <b>O</b>나 <b>X</b>만 쓰면 <b>OX</b>, 오답까지 쓰면 <b>객관식</b>이에요. 인정할 답이 여럿이면 <b>/</b>로 나눠요 (예: 세종대왕/세종).
           엑셀에서 여러 줄을 복사해 문제 칸에 붙여넣어도 한 번에 들어가요.</p>
         <div class="ed-grid">
-          <div class="qtable-wrap"><table class="tbl qtable">
+          <div class="qtable-wrap" role="region" aria-label="문제 입력 표 · 옆으로 이동해 모든 열 보기" tabindex="0"><table class="tbl qtable">
             <thead><tr><th class="n">#</th><th>문제</th><th>정답</th><th>오답 1</th><th>오답 2</th><th>오답 3</th><th>해설</th><th>종류</th><th></th></tr></thead>
             <tbody id="q-rows"></tbody></table></div>
           <aside class="preview"><h3>학생 화면 미리보기</h3><div id="preview"></div></aside>
         </div>
+        <p class="small muted">표가 좁으면 옆으로 밀어 오답·해설 칸까지 확인하세요. 빈 줄은 출제하지 않아요.</p>
         <div class="row" style="margin-top:10px"><button class="btn sm" id="add1">+ 문제 추가</button><button class="btn sm" id="add5">+ 5줄</button>
           <span class="grow"></span><span class="muted small" id="q-summary"></span></div>
       </div>
@@ -131,7 +139,7 @@
         <span class="pill" id="p-acc" title="지금까지 정답률">✅ -</span>
         <span class="grow"></span>
         <button class="btn sm" id="p-alerts" title="도움이 필요할 수 있는 학생·모둠">👀 교사 알림 <b id="p-alert-n">0</b></button>
-        <button class="btn sm" id="p-full">📺</button>
+        <button class="btn sm" id="p-full" aria-label="전체 화면">📺 전체 화면</button>
         <button class="btn sm coral" id="p-end">게임 끝내기</button>
       </div>
       <div id="stage"></div>
@@ -166,10 +174,10 @@
 </div>
 
 <!-- 게임 설정 -->
-<div class="modal" id="set-modal" hidden>
+<div class="modal" id="set-modal" hidden data-cancel="sm-cancel" aria-labelledby="sm-title">
   <div class="card setsheet">
     <div class="sheet-head">
-      <img id="sm-art" alt=""><div><h2 id="sm-title"></h2><p class="muted" id="sm-desc"></p></div>
+      <img id="sm-art" alt=""><div><h2 id="sm-title" tabindex="-1" data-initial-focus></h2><p class="muted" id="sm-desc"></p></div>
     </div>
     <div id="settings"></div>
     <div class="setrow"><span>학생 이름</span><div class="chips" id="nick-chips">
@@ -181,9 +189,9 @@
 </div>
 
 <!-- AI 문제 만들기 -->
-<div class="modal" id="ai-modal" hidden>
+<div class="modal" id="ai-modal" hidden data-cancel="ai-close" aria-labelledby="ai-title">
   <div class="card">
-    <h2>🤖 AI로 문제 만들기 <span class="grow"></span><button class="btn sm ghost" id="ai-close">닫기</button></h2>
+    <h2 id="ai-title">🤖 AI로 문제 만들기 <span class="grow"></span><button class="btn sm ghost" id="ai-close">닫기</button></h2>
     <div class="ai-flow">
       <div><b>고르기</b>아래 조건을 고르면 요청문이 완성돼요</div>
       <div><b>복사하기</b>ChatGPT·Gemini·Claude에 붙여넣고, 교과서 쪽이나 학습지를 함께 올려요</div>
@@ -199,14 +207,20 @@
       <label class="field"><span>오답 만들기</span><select class="input" id="ai-wrong"><option value="mis" selected>아이들이 자주 헷갈리는 생각으로</option><option value="plain">비슷한 낱말로</option></select></label>
     </div>
     <label class="field"><span>단원·범위 <small class="muted">(선택)</small></span><input class="input" id="ai-scope" placeholder="예: 2단원 지층과 화석 / 교과서 40~55쪽"></label>
-    <textarea class="input" id="ai-prompt" rows="9" readonly></textarea>
+    <label for="ai-prompt">완성된 AI 요청문</label><textarea class="input" id="ai-prompt" rows="9" readonly></textarea>
     <div class="row" style="margin-top:10px"><button class="btn lemon lg" id="ai-copy">요청문 복사</button><span id="ai-copied" class="muted"></span></div>
     <p class="warn">학생 이름·사진 같은 개인정보가 담긴 자료는 올리지 마세요. 학교가 허용한 AI 서비스를 선생님 계정으로 써 주세요.</p>
   </div>
 </div>
 
 <!-- 저장하지 않고 넘어가기: 두 번 확인 -->
-<div class="modal" id="discard-modal" hidden>
+<div class="modal" id="end-modal" role="dialog" aria-modal="true" aria-labelledby="end-title" hidden data-cancel="end-cancel">
+  <div class="card" style="width:min(480px,100%)"><h2 id="end-title">게임을 끝내고 결과를 볼까요?</h2>
+    <p>학생들은 결과와 복습 노트로 이동해요. 선생님은 결과를 저장한 뒤 분석실에서 확인할 수 있어요.</p>
+    <div class="row"><button class="btn ghost" id="end-cancel">계속 게임하기</button><button class="btn coral" id="end-confirm">끝내고 결과 보기</button></div>
+  </div>
+</div>
+<div class="modal" id="discard-modal" hidden data-cancel="dc-cancel" aria-labelledby="dc-title">
   <div class="card" style="width:min(480px,100%)">
     <h2 id="dc-title">아직 결과를 저장하지 않았어요</h2>
     <p id="dc-text">이 게임의 기록(정답·응답 시간·모둠 협력)을 선생님 컴퓨터에 저장할까요?</p>
@@ -216,11 +230,11 @@
 </div>
 
 <!-- 선생님 PIN (인터넷 배포 시) -->
-<div class="modal" id="pin-modal" hidden>
+<div class="modal" id="pin-modal" hidden data-cancel="pin-cancel" aria-labelledby="pin-title">
   <form class="card" id="pin-form" style="width:min(420px,100%)">
-    <h2>선생님 PIN</h2>
+    <h2 id="pin-title">선생님 PIN</h2>
     <p class="muted">이 서버는 방을 만들 때 선생님 PIN이 필요해요.</p>
-    <input class="input code-input" id="pin" inputmode="numeric" maxlength="12" autocomplete="off">
+    <label for="pin">PIN 입력</label><input class="input code-input" id="pin" inputmode="numeric" maxlength="12" autocomplete="off" data-initial-focus>
     <div class="row" style="margin-top:12px"><button type="button" class="btn ghost" id="pin-cancel">취소</button><span class="grow"></span><button class="btn mint">확인</button></div>
   </form>
 </div>

@@ -4,6 +4,19 @@ import { setMuted } from './fx.js';
 import { CHARS, CHAR, RARITY, charImg } from './chars.js';
 import { album } from './album.js';
 import { MODE } from './modes/info.js';
+import { renderReview } from './review.js';
+
+function updateLearning(s) {
+  if (!s) return;
+  const el = $('#learning-chip'); el.hidden = room?.state !== 'play';
+  el.textContent = `🌱 ${s.seen}/${s.total}문제 만남 · 다시 도전 성공 ${s.recovered}개`;
+}
+async function loadReview() {
+  $('#learning-chip').hidden = true;
+  const gameKey = `${room?.code}:${room?.startedAt}`;
+  const r = await emit(socket, 's:learning', {});
+  if (room?.state === 'end' && gameKey === `${room?.code}:${room?.startedAt}`) renderReview($('#e-learning'), r);
+}
 
 sound.on = store.get('jq_sound_student', false); // 교실 소음 방지: 학생 기기는 기본 꺼짐
 setMuted(!sound.on);
@@ -170,8 +183,8 @@ function makeCtx() {
         if (r?.error && waitQ) { clearTimeout(timer); waitQ = null; resolve(null); }
       });
     },
-    answer: (qid, given) => emit(socket, 's:answer', { qid, given }),
-    async quiz(opts = {}) { const v = await this.ask(); if (!v) return null; return showQuiz(v, { ...opts, onAnswer: g => this.answer(v.qid, g) }); },
+    answer: async (qid, given) => { const r = await emit(socket, 's:answer', { qid, given }); updateLearning(r?.learning); return r; },
+    async quiz(opts = {}) { const v = await this.ask(); if (!v) return null; return showQuiz(v, { readToContinue: true, ...opts, onAnswer: g => this.answer(v.qid, g) }); },
     sound, music, toast, showQuiz, fx,
   };
 }
@@ -180,6 +193,8 @@ function makeCtx() {
 socket.on('room', r => {
   const prev = room?.state;
   room = r;
+  if (r.state !== 'play') $('#learning-chip').hidden = true;
+  if (prev !== 'play' && r.state === 'play') { $('#e-learning').innerHTML = ''; emit(socket, 's:learning', {}).then(r => updateLearning(r?.summary)); }
   if (prev && prev !== 'play' && r.state === 'play') { startKey++; mounting = true; buffer = []; }
   roomFns.forEach(f => f(r));
   if (!me) return;
@@ -212,6 +227,8 @@ socket.on('connect', async () => {
 
 // ---------- 결과 + 칭찬 도장 ----------
 function showEnd(ranking) {
+  $$('.quiz-layer').forEach(el => el.closeQuiz?.());
+  loadReview();
   if (unmount) { try { unmount(); } catch {} unmount = null; }
   mountedFor = null;
   if (!me || !ranking) return;

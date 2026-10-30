@@ -1,3 +1,6 @@
 node_modules/
 *.log
 .env
+backups/
+release/
+pages-dist/

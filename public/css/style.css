@@ -205,3 +205,5 @@ body.fx-quake { animation: quake .14s 2; }
 .lt-ready h1, .lt-board h1, .ct-head h1, .tt-head h1 { font-family: var(--display); }
 .lt-correct, .lt-out, .lt-ready { font-family: var(--display); }
 .lt-bar .lab, .ch-card h2, .reveal .txt { font-family: var(--display); }
+.qres>div { max-height:100%; overflow:auto; width:100%; }
+@media(max-width:600px) { .quiz-layer .qres {padding:14px;font-size:28px} .quiz-layer .qres .big {font-size:52px} .quiz-layer .qres small {font-size:17px;line-height:1.5} }

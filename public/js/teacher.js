@@ -1,9 +1,15 @@
+import { SAMPLE_ROWS } from './sample.js';
+import { makeBackup, parseBackup, mergeBackup, BACKUP_LIMIT } from './library-backup.js';
+import { questionIssues, selectSets } from './teacher-utils.js';
+import { installDialogs } from './dialogs.js';
 // 선생님 셸 v0.2: 퀴즈 세트 보관함 → 세트 편집 → 게임 고르기 → 설정 → 대기실(TV) → 진행 → 결과·저장
 import { $, $$, esc, store, toast, connect, emit, avatarHTML, sound, music, showQuiz, qrSVG, pct, fx, session as sstore, onImgFail, SERVER, apiURL } from './common.js';
 import { MODES, MODE, defaults } from './modes/info.js';
-import { buildRecord, saveRecord, chooseFolder, folderInfo, liveDraft } from './record.js';
+import { buildRecord, saveRecord, chooseFolder, folderInfo, liveDraft, validateRecord } from './record.js';
 
 const socket = connect();
+installDialogs();
+$$('[data-file-input]').forEach(button => button.onclick = () => document.getElementById(button.dataset.fileInput).click());
 let room = null, session = store.get('jq_teacher', null), questionsSrv = [], log = [], feed = [], ranking = null, startedAt = 0;
 let mode = store.get('jq_mode', 'live');
 let allSettings = store.get('jq_settings', {});
@@ -67,25 +73,14 @@ function show(name) {
   document.body.classList.toggle('playing', name === 'play');
   document.body.classList.toggle('lobbying', name === 'lobby');
   $$('.rail-btn[data-go]').forEach(b => b.classList.toggle('on', b.dataset.go === (name === 'editor' ? 'library' : name)));
+  const step = name === 'editor' ? 'library' : name === 'play' ? 'lobby' : name;
+  $$('.lesson-path [data-step]').forEach(el => { if (el.dataset.step === step) el.setAttribute('aria-current', 'step'); else el.removeAttribute('aria-current'); });
+  $$('.rail-btn[data-go]').forEach(b => { if (b.classList.contains('on')) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   window.scrollTo(0, 0);
 }
 $$('.rail-btn[data-go]').forEach(b => b.onclick = () => { if (b.dataset.go === 'picker') openPicker(); else { saveCurrent(); renderLibrary(); show('library'); } });
 
 // ================= 세트 보관함 (이 컴퓨터 브라우저에 저장) =================
-const SAMPLE_ROWS = [
-  ['자갈, 모래, 진흙 등이 쌓여 층을 이룬 것은?', '지층', '화산', '빙하', '사막', '지층은 여러 겹의 층으로 이루어져 있어요.'],
-  ['지층에서 보통 아래에 있는 층이 먼저 쌓였다.', 'O', '', '', '', '아래층이 먼저, 위층이 나중에 쌓여요.'],
-  ['알갱이가 주로 진흙으로 된 퇴적암은?', '이암', '사암', '역암', '현무암', ''],
-  ['알갱이가 주로 모래로 된 퇴적암은?', '사암', '이암', '역암', '화강암', ''],
-  ['자갈이 많이 섞여 있는 퇴적암의 이름은?', '역암', '', '', '', '자갈 역(礫) 자를 써요.'],
-  ['옛날에 살았던 생물의 몸체나 흔적이 남은 것은?', '화석', '지층', '퇴적암', '광물', ''],
-  ['나뭇잎 화석을 보고 알 수 있는 것은?', '그곳이 옛날에 육지였다', '그곳이 옛날에 바다였다', '그곳이 화산이었다', '아무것도 알 수 없다', '나무는 육지에서 자라요.'],
-  ['삼엽충 화석이 나온 곳은 옛날에 바다였다.', 'O', '', '', '', '삼엽충은 바다에 살았어요.'],
-  ['화석은 어떤 암석에서 주로 발견될까요?', '퇴적암', '화성암', '변성암', '현무암', ''],
-  ['공룡 발자국도 화석이 될 수 있다.', 'O', '', '', '', '생물의 흔적도 화석이에요.'],
-  ['퇴적물이 쌓이고 눌려 단단하게 굳어진 암석은?', '퇴적암', '', '', '', ''],
-  ['지층이 휘어지거나 끊어진 것을 보고 알 수 있는 것은?', '큰 힘을 받았다', '비가 많이 왔다', '바람이 불었다', '생물이 살았다', ''],
-].map(a => ({ q: a[0], a: a[1], w1: a[2], w2: a[3], w3: a[4], ex: a[5] }));
 const COVERS = ['#FFFFFF', '#D6E7FF', '#FFE0E8', '#E3FAF1', '#EDE6FF', '#FFF4B8'];
 const newId = () => Math.random().toString(36).slice(2, 10);
 function loadSets() {
@@ -101,19 +96,26 @@ function loadSets() {
   return list;
 }
 let sets = loadSets(), cur = null; // cur = 편집 중인 세트
-const saveSets = () => { if (!store.set('jq_sets2', sets)) toast('브라우저 저장 공간이 부족해요. 엑셀로 저장해 두세요.', 3500); };
+function setSaveState(message, failed = false) { $('#save-state').textContent = message; $('#save-state').classList.toggle('failed', failed); }
+const saveSets = () => { const ok = store.set('jq_sets2', sets); if (!ok) { setSaveState('저장하지 못했어요. 엑셀로 저장해 주세요.', true); toast('브라우저 저장 공간이 부족해요. 엑셀로 저장해 두세요.', 3500); } return ok; };
 const qCount = rs => rs.filter(r => ['mc', 'short', 'ox'].includes(rowState(r))).length;
 function renderLibrary() {
+  const query = $('#lib-search').value;
+  const matches = selectSets(sets, query, $('#lib-sort').value);
+  $('#lib-total').textContent = `${sets.length}개`;
+  $('#lib-match').textContent = query.trim() ? `${matches.length}개 찾음` : '';
   const card = (s, i) => `<div class="set" style="--cover:${COVERS[i % COVERS.length]}" data-id="${s.id}">
     <div class="label"><h3>${esc(s.title || '제목 없는 세트')}</h3><div class="meta">문제 ${qCount(s.rows)}개 · ${new Date(s.updatedAt).toLocaleDateString('ko-KR')}</div></div>
     <div class="acts"><button class="btn sm mint" data-act="play">게임 열기</button><button class="btn sm" data-act="edit">편집</button>
-      <button class="btn sm ghost" data-act="dup" title="복사본 만들기">복제</button><button class="btn sm ghost" data-act="del" title="지우기">🗑</button></div></div>`;
-  $('#sets').innerHTML = `<div class="set sample" data-id="sample"><div class="tape"></div>
+      <button class="btn sm ghost" data-act="dup" title="복사본 만들기">복제</button><button class="btn sm ghost" data-act="del" aria-label="${esc(s.title || '제목 없는 세트')} 삭제">삭제</button></div></div>`;
+  $('#sets').innerHTML = (query.trim() ? '' : `<div class="set sample" data-id="sample"><div class="tape"></div>
       <div class="label"><h3>예시 · 4학년 과학 지층과 화석</h3><div class="meta">문제 ${SAMPLE_ROWS.length}개 · 처음이라면 이걸로 해 보세요</div></div>
-      <div class="acts"><button class="btn sm mint" data-act="play">게임 열기</button><button class="btn sm" data-act="dup">내 세트로 복사</button></div></div>`
-    + [...sets].sort((a, b) => b.updatedAt - a.updatedAt).map(card).join('')
+      <div class="acts"><button class="btn sm mint" data-act="play">게임 열기</button><button class="btn sm" data-act="dup">내 세트로 복사</button></div></div>`)
+    + matches.map(card).join('')
+    + (query.trim() && !matches.length ? '<div class="search-empty"><b>찾는 세트가 없어요.</b><p>다른 단어나 문제의 일부로 찾아보세요.</p><button class="btn sm" id="lib-reset">검색 지우기</button></div>' : '')
     + '<button class="set add" id="lib-add">+ 새 세트</button>';
   $('#lib-add').onclick = () => newSet();
+  if ($('#lib-reset')) $('#lib-reset').onclick = () => { $('#lib-search').value = ''; renderLibrary(); $('#lib-search').focus(); };
   $$('#sets .set[data-id]').forEach(el => el.addEventListener('click', e => {
     const act = e.target.closest('[data-act]')?.dataset.act; if (!act) return;
     const id = el.dataset.id, s = id === 'sample' ? { id: 'sample', title: '4학년 과학 · 지층과 화석', rows: SAMPLE_ROWS } : sets.find(x => x.id === id);
@@ -135,12 +137,38 @@ function openSet(s, edit = false) {
   if (edit) { renderRows(); show('editor'); }
 }
 function saveCurrent() {
+  clearTimeout(saveTimer);
   if (!cur || cur.id === 'sample') return;
-  cur.rows = rows.filter(filled); cur.title = $('#title').value.trim(); cur.updatedAt = Date.now(); saveSets();
+  cur.rows = rows.filter(filled); cur.title = $('#title').value.trim(); cur.updatedAt = Date.now();
+  if (saveSets()) setSaveState(`저장됨 · 이 브라우저 · ${new Date().toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'})}`);
 }
 let saveTimer = 0;
-const queueSave = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveCurrent, 400); };
+const queueSave = () => { clearTimeout(saveTimer); if (cur?.id === 'sample') { setSaveState('예시 세트예요. 내 세트로 복사하면 수정할 수 있어요.'); return; } setSaveState('변경 내용 저장 중…'); saveTimer = setTimeout(saveCurrent, 400); };
+window.addEventListener('pagehide', saveCurrent);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveCurrent(); });
+$('#lib-search').oninput = renderLibrary;
+$('#lib-sort').onchange = renderLibrary;
+$('#quick-start').onclick = () => { saveCurrent(); openSet({id:'sample',title:'4학년 과학 · 지층과 화석',rows:SAMPLE_ROWS}); openPicker(); };
 $('#lib-new').onclick = () => newSet();
+$('#lib-backup').onclick = () => {
+  saveCurrent();
+  if (!sets.length) return toast('내 세트를 먼저 만들어 주세요. 예시 세트는 모든 PC에 있어요.');
+  const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(sets), null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = `즐거운퀴즈_보관함_${new Date().toLocaleDateString('sv-SE')}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  toast(`세트 ${sets.length}개를 백업 파일로 내보냈어요. 이 파일을 다른 PC로 옮기세요.`, 4500);
+};
+$('#lib-restore').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    if (f.size > BACKUP_LIMIT) throw new Error('5MB 이하의 보관함 파일을 골라 주세요.');
+    const incoming = parseBackup(await f.text());
+    const result = mergeBackup(sets, incoming, newId);
+    if (!store.set('jq_sets2', result.sets)) throw new Error('브라우저 저장 공간이 부족해요. 기존 보관함은 그대로 두었어요.');
+    sets = result.sets; renderLibrary();
+    toast(`${result.added}개 추가 · 같은 세트 ${result.skipped}개 건너뜀. 기존 세트는 그대로예요.`, 5000);
+  } catch (err) { toast(err.message || '보관함 파일을 다시 확인해 주세요.', 5000); }
+};
 $('#lib-ai').onclick = () => { newSet(); openAI(); };
 $('#lib-file').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; const got = await readQuestionFile(f); if (got?.length) { newSet(got, f.name.replace(/\.[^.]+$/, '')); toast(`문제 ${got.length}개를 가져왔어요. 정답을 한 번 확인해 주세요.`, 3200); } };
 $('#ed-back').onclick = () => { saveCurrent(); renderLibrary(); show('library'); };
@@ -184,7 +212,28 @@ function refreshQ() {
   const n = cnt.mc + cnt.short + cnt.ox;
   $('#q-count').textContent = `문제 ${n}개`;
   $('#q-summary').textContent = `객관식 ${cnt.mc} · 단답형 ${cnt.short} · OX ${cnt.ox}${cnt.bad ? ` · 고칠 줄 ${cnt.bad}` : ''}`;
+  renderIssues();
   renderPreview(); queueSave();
+}
+function renderIssues() {
+  const issues = questionIssues(rows), box = $('#editor-errors');
+  box.hidden = !issues.length;
+  $('#editor-error-list').innerHTML = issues.slice(0, 8).map(issue => `<button class="error-link" data-row="${issue.row}" data-col="${issue.key}">${esc(issue.message)}</button>`).join('') + (issues.length > 8 ? `<p>그 밖에 ${issues.length - 8}곳을 더 확인해 주세요.</p>` : '');
+  $$('#editor-error-list button').forEach(b => b.onclick = () => $(`tr[data-i="${b.dataset.row}"] input[data-c="${b.dataset.col}"]`, tbody)?.focus());
+  $$('input', tbody).forEach(input => {
+    const invalid = issues.some(issue => issue.row === +input.closest('tr').dataset.i && issue.key === input.dataset.c);
+    input.setAttribute('aria-invalid', String(invalid));
+    if (invalid) input.setAttribute('aria-describedby', 'editor-error-title'); else input.removeAttribute('aria-describedby');
+  });
+  return issues;
+}
+function readyQuestions() {
+  if (questionIssues(rows).length || !questions().length) {
+    renderRows(); show('editor');
+    if (!questions().length && !questionIssues(rows).length) { $('#editor-errors').hidden = false; $('#editor-error-list').textContent = '문제와 정답을 1개 이상 입력해 주세요.'; }
+    $('#editor-errors').focus(); return false;
+  }
+  return true;
 }
 function renderPreview() {
   const r = rows[selRow], st = r && rowState(r);
@@ -351,6 +400,7 @@ const NEW = new Set(['shop', 'fishing', 'raid', 'royale']);
 function openPicker() {
   if (!cur) { const last = sets.find(s => s.id === store.get('jq_cur')) || null; if (last) openSet(last); else openSet({ id: 'sample', title: '4학년 과학 · 지층과 화석', rows: SAMPLE_ROWS }); }
   saveCurrent();
+  if (!readyQuestions()) return;
   const n = questions().length;
   $('#pk-set').textContent = `· ${$('#title').value || '제목 없는 세트'} (문제 ${n}개)`;
   const boxHTML = m => `<button class="box" data-id="${m.id}" style="--mc:${m.color}">
@@ -364,7 +414,7 @@ function openPicker() {
   $$('#modes .box').forEach(b => b.onclick = () => { mode = b.dataset.id; store.set('jq_mode', mode); fx.light(b); openSettings(); });
   show('picker');
 }
-$('#ed-play').onclick = () => { if (!questions().length) return toast('문제를 1개 이상 넣어 주세요.'); openPicker(); };
+$('#ed-play').onclick = () => openPicker();
 $('#pk-back').onclick = () => { if (cur?.id === 'sample') { renderLibrary(); show('library'); } else { renderRows(); show('editor'); } };
 const curSettings = () => ({ ...defaults(mode), ...(allSettings[mode] || {}) });
 function openSettings() {
@@ -373,15 +423,20 @@ function openSettings() {
   $('#sm-desc').textContent = M.teacher;
   const art = $('#sm-art'); art.hidden = false; art.src = `assets/modes/${M.id}.webp`;
   onImgFail(art, () => { art.hidden = true; });
-  $('#settings').innerHTML = M.settings.map(s => `<div class="setrow"><span>${esc(s.label)}</span>
-    <div class="chips" data-k="${s.key}">${s.options.map(([v, l]) => `<button class="chip ${String(cs[s.key]) === String(v) ? 'on' : ''}" data-v='${JSON.stringify(v)}'>${esc(l)}</button>`).join('')}</div></div>`).join('');
+  const settingRow = s => `<div class="setrow"><span>${esc(s.label)}</span>
+    <div class="chips" role="group" aria-label="${esc(s.label)}" data-k="${s.key}">${s.options.map(([v, l]) => `<button class="chip ${String(cs[s.key]) === String(v) ? 'on' : ''}" aria-pressed="${String(cs[s.key]) === String(v)}" data-v='${JSON.stringify(v)}'>${esc(l)}</button>`).join('')}</div></div>`;
+  const advanced = mode === 'race' ? new Set(['gates','stamps','finishPct','items']) : new Set();
+  $('#settings').innerHTML = M.settings.filter(s=>!advanced.has(s.key)).map(settingRow).join('') + (advanced.size ? `<details class="advanced-settings"><summary>게이트·결승 조건·아이템 자세히 설정 <small id="advanced-summary"></small></summary>${M.settings.filter(s=>advanced.has(s.key)).map(settingRow).join('')}</details>` : '');
+  const advancedSummary = () => { const el=$('#advanced-summary');if(el){const s=curSettings();el.textContent=`게이트 ${s.gates}개 · 도장 ${s.stamps}개 · ${s.finishPct}% 도착 · 아이템 ${s.items?'켜짐':'꺼짐'}`;} };
+  advancedSummary();
   $$('#settings .chips').forEach(box => $$('.chip', box).forEach(c => c.onclick = () => {
     allSettings[mode] = { ...curSettings(), [box.dataset.k]: JSON.parse(c.dataset.v) }; store.set('jq_settings', allSettings);
-    $$('.chip', box).forEach(x => x.classList.toggle('on', x === c));
+    $$('.chip', box).forEach(x => { x.classList.toggle('on', x === c); x.setAttribute('aria-pressed', String(x === c)); });
+    advancedSummary();
   }));
-  $$('#nick-chips .chip').forEach(c => { c.classList.toggle('on', (c.dataset.v === '1') === nickMode); c.onclick = () => { nickMode = c.dataset.v === '1'; store.set('jq_nick', nickMode); $$('#nick-chips .chip').forEach(x => x.classList.toggle('on', x === c)); }; });
+  $$('#nick-chips .chip').forEach(c => { c.classList.toggle('on', (c.dataset.v === '1') === nickMode); c.setAttribute('aria-pressed',String(c.classList.contains('on'))); c.onclick = () => { nickMode = c.dataset.v === '1'; store.set('jq_nick', nickMode); $$('#nick-chips .chip').forEach(x => {x.classList.toggle('on', x === c);x.setAttribute('aria-pressed',String(x===c));}); }; });
   $('#max-row').hidden = mode === 'race'; // 카트는 40명까지
-  $$('#max-chips .chip').forEach(c => { c.classList.toggle('on', +c.dataset.v === maxPlayers); c.onclick = () => { maxPlayers = +c.dataset.v; store.set('jq_max', maxPlayers); $$('#max-chips .chip').forEach(x => x.classList.toggle('on', x === c)); }; });
+  $$('#max-chips .chip').forEach(c => { c.classList.toggle('on', +c.dataset.v === maxPlayers); c.setAttribute('aria-pressed',String(c.classList.contains('on'))); c.onclick = () => { maxPlayers = +c.dataset.v; store.set('jq_max', maxPlayers); $$('#max-chips .chip').forEach(x => {x.classList.toggle('on', x === c);x.setAttribute('aria-pressed',String(x===c));}); }; });
   $('#sm-open').textContent = room && session && room.state !== 'play' ? '이 설정으로 바꾸기' : '방 열기';
   $('#set-modal').hidden = false;
 }
@@ -395,11 +450,13 @@ async function openRoom(pin = sstore.get('jq_pin', '')) {
   if (!qs.length) return toast('문제를 1개 이상 넣어 주세요.', 3000);
   sound.unlock();
   $('#sm-open').disabled = true;
+  $('#sm-open').textContent = '방을 준비하고 있어요…';
   const body = { title: $('#title').value.trim() || '우리 반 퀴즈', mode, settings: { ...curSettings(), nick: nickMode, maxPlayers: mode === 'race' ? 40 : maxPlayers }, questions: qs, pin };
   let r;
   if (room && session && room.state !== 'play') r = await emit(socket, 't:update', body);
   else { r = await emit(socket, 't:create', body); if (!r.error) { session = { code: r.code, key: r.key }; store.set('jq_teacher', session); } }
   $('#sm-open').disabled = false;
+  $('#sm-open').textContent = room && session && room.state !== 'play' ? '이 설정으로 바꾸기' : '방 열기';
   if (r.pin) { $('#set-modal').hidden = true; $('#pin-modal').hidden = false; $('#pin').value = ''; setTimeout(() => $('#pin').focus(), 50); return; }
   if (r.error) return toast(r.error, 3000);
   $('#set-modal').hidden = true;
@@ -519,7 +576,9 @@ function updatePlaybar() {
   const ok = log.filter(l => l.ok).length;
   $('#p-acc').textContent = log.length ? `✅ 정답률 ${pct(ok, log.length)}% (${log.length}번)` : '✅ -';
 }
-$('#p-end').onclick = async () => { if (confirm('게임을 끝내고 결과를 볼까요?')) await emit(socket, 't:end', {}); };
+$('#p-end').onclick = () => { $('#end-modal').hidden = false; $('#end-cancel').focus(); };
+$('#end-cancel').onclick = () => { $('#end-modal').hidden = true; $('#p-end').focus(); };
+$('#end-confirm').onclick = async () => { $('#end-modal').hidden = true; const r = await emit(socket, 't:end', {}); if(r?.error) toast(r.error); };
 
 // ================= 결과 =================
 const gameKey = () => `${room?.code}:${startedAt}`;
@@ -550,6 +609,8 @@ async function doSave(auto) {
   }
 }
 function showResult() {
+  $('#end-modal').hidden = true;
+  $('#r-savebtn').disabled = false;
   if (unmount) { try { unmount(); } catch {} unmount = null; }
   music.stop();
   show('result');
@@ -656,9 +717,24 @@ socket.on('connect', async () => {
     log.splice(0, log.length, ...(r.log || [])); ranking = r.ranking;
     if (!$('#s-result').classList.contains('on')) {
       const done = savedKeys().includes(gameKey());
-      if (done) { saved = true; lastRecord = makeRecord(); }
+      let restored = false;
+      if (done) {
+        saved = true;
+        try {
+          const cached = validateRecord(store.get('jq_last_record', null));
+          if (new Date(cached.startedAt).getTime() === startedAt && cached.mode === room.mode &&
+              cached.players.length === room.players.length && cached.players.every(p => room.players.some(o => o.pid === p.pid))) {
+            lastRecord = cached; log.splice(0, log.length, ...cached.answers); events.splice(0, events.length, ...(cached.events || [])); restored = true;
+          }
+        } catch {}
+        if (!restored) lastRecord = makeRecord();
+      }
       showResult();
-      if (done) { $('#r-save').className = 'save-box'; $('#r-save').textContent = '이 게임 기록은 이미 저장했어요.'; }
+      if (done) {
+        $('#r-save').className = 'save-box';
+        $('#r-save').textContent = restored ? '저장한 기록으로 결과를 다시 열었어요.' : '기록은 이미 저장했어요. 자세한 응답은 저장한 JSON/엑셀을 분석실에서 열어 주세요.';
+        $('#r-savebtn').disabled = !restored && !log.length;
+      }
     }
   } else if ($('#s-lobby').classList.contains('on') || $('#s-library').classList.contains('on')) {
     // 열려 있던 방이 있으면 대기실로 (편집 중이 아니면)
@@ -683,7 +759,7 @@ async function wakeServer(tries = 0) {
   }
 }
 wakeServer();
-renderLibrary(); refreshFolder();
+renderLibrary(); refreshFolder(); show('library');
 window.addEventListener('beforeunload', e => { saveCurrent(); if (room?.state === 'play' || (lastRecord && !saved && log.length)) { e.preventDefault(); e.returnValue = ''; } });
 
 // ---------- 협력 게임 결과: 모둠 단위로 (개인 기여는 선생님만 보기) ----------

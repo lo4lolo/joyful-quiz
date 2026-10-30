@@ -1,0 +1,20 @@
+.learning-card { margin:22px auto 0; padding:24px; border:3px solid var(--ink); border-radius:22px; background:#fff; box-shadow:5px 5px 0 var(--ink); text-align:left; max-width:900px; color:var(--ink); }
+.learning-heading { display:flex; gap:14px; align-items:center; }
+.learning-heading>span { font-size:42px; }
+.learning-heading h2 { margin:0 0 5px; font-size:26px; }
+.learning-heading p,.learning-note { font-size:14px; color:#556580; line-height:1.6; margin:7px 0; }
+.learning-numbers { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:20px 0 12px; }
+.learning-numbers>div { padding:14px 8px; background:#eef6ff; border-radius:14px; text-align:center; font-size:13px; }
+.learning-numbers b { display:block; font:32px var(--display); margin-bottom:6px; }
+.learning-numbers>div:nth-child(3) { background:#e0f8ee; }
+.learning-numbers>div:nth-child(4) { background:#fff4ca; }
+.review-cards { display:grid; gap:10px; margin-top:14px; }
+.review-cards details { border:2px solid #cbd7e6; border-radius:14px; overflow:hidden; }
+.review-cards summary { cursor:pointer; padding:16px; font-weight:700; }
+.review-cards summary small { display:block; color:#596985; font-weight:400; margin:8px 0 0 22px; }
+.review-cards details>div { padding:4px 18px 14px; background:#f6faff; line-height:1.7; }
+.review-answer { color:#147350; }
+.review-empty { padding:20px; background:#effaf5; border-radius:14px; line-height:1.7; }
+.learning-chip { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); z-index:25; padding:6px 14px; border:2px solid var(--ink); border-radius:99px; background:#fff9d7; color:var(--ink); font-size:13px; pointer-events:none; white-space:nowrap; }
+body:has(.mode-race) .learning-chip { top:58px; bottom:auto; left:12px; transform:none; }
+@media(max-width:600px) { .learning-card { padding:16px; } .learning-numbers { grid-template-columns:repeat(2,1fr); } .learning-heading h2 {font-size:22px} .learning-chip {font-size:11px} }

@@ -9,8 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
 import { cleanQuestions, studentView, grade, shuffle } from './server/quiz.js';
 import { TEAMS, MAX_TEAMS, assignTeams, smallestTeam } from './server/teams.js';
+import { newLearning, recordAnswer, nextQuestion, learningSummary, reviewCards } from './public/js/learning.js';
 
-const VERSION = '0.4.0';
+const VERSION = '0.6.0';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUB = path.join(ROOT, 'public');
 const PORT = +process.env.PORT || 3030;
@@ -149,14 +150,11 @@ function makeApi(room) {
     sendRoom: () => { io.to(room.code + ':s').emit('room', roomInfo(room)); io.to(room.code + ':t').emit('room', roomInfo(room, true)); },
     // 자율 진행: 학생마다 섞인 순서로 다음 문제
     nextQi(p) {
-      if (!p.order.length) {
-        p.order = shuffle(room.questions.map(q => q.qid));
-        if (p.order.length > 1 && p.order[p.order.length - 1] === p.lastQi) p.order.unshift(p.order.pop());
-      }
-      return p.order.pop();
+      return nextQuestion(p.learning ||= newLearning(), room.questions.map(q => q.qid), p.lastQi, room.settings.retryWrong !== false);
     },
     ask(p, qi = api.nextQi(p), time = room.settings.time) {
       const v = studentView(room.questions, qi, p.device, time);
+      v.review = !!p.learning?.items[qi]?.misses && !p.learning.items[qi].lastOk;
       p.pending = { qid: v.qid, sentAt: Date.now(), time, kind: v.kind }; p.lastQi = qi;
       if (p.sid) io.to(p.sid).emit('q', v);
       return v;
@@ -179,17 +177,19 @@ function makeApi(room) {
       const ms = Date.now() - p.pending.sentAt;
       const pend = p.pending;
       p.pending = null; p.pendingKind = pend?.kind;
-      const g = String(given ?? '').slice(0, 80);
+      const timedOut = ms > pend.time * 1000 + 1000;
+      const g = timedOut ? '' : String(given ?? '').slice(0, 80);
       const r = grade(Q, g);
+      recordAnswer(p.learning ||= newLearning(), qid, r.ok, g);
       // 정오답 말고도: 몇 번째 만난 문제인지(try), 게임 속 몇 번째 답(seq), 직전 연속 정답(streak), 건너뜀(skip), 문제 모양(kind)
       const seen = (p.seen ||= Object.create(null)); seen[qid] = (seen[qid] || 0) + 1;
       const entry = { pid: p.pid, name: p.realName || p.name, qid, ok: r.ok, given: g, ms, t: Date.now(),
-        try: seen[qid], seq: p.stats.n + 1, streak: p.streakNow | 0, skip: !g, kind: p.pendingKind || Q.kind, dev: p.device === 'touch' ? 't' : 'p' };
+        try: seen[qid], seq: p.stats.n + 1, streak: p.streakNow | 0, skip: !g, timedOut, kind: p.pendingKind || Q.kind, dev: p.device === 'touch' ? 't' : 'p' };
       p.streakNow = r.ok ? (p.streakNow | 0) + 1 : 0;
       if (room.log.length < 50000) room.log.push(entry);
       io.to(room.code + ':t').emit('log', entry);
       p.stats.n++; if (r.ok) p.stats.ok++;
-      return { ...r, qid, given: g, ms };
+      return { ...r, qid, given: g, ms, timedOut, learning: learningSummary(p.learning, room.questions.length) };
     },
     end() { endRoom(room); },
     // 모둠: 선생님이 대기실에서 나눈 모둠을 그대로 쓰고, 개수가 다르면 다시 나눈다
@@ -219,6 +219,7 @@ function endRoom(room) {
   const M = MODES[room.mode];
   room.state = 'end'; room.endedAt = Date.now();
   const ranking = M.ranking(room);
+  for (const row of ranking) row.extra = { ...row.extra, learning: learningSummary(room.players.get(row.pid)?.learning, room.questions.length) };
   room.lastRanking = ranking;
   room.lastRankingT = teacherRanking(room, ranking);
   io.to(room.code + ':s').emit('end', { ranking });
@@ -270,7 +271,7 @@ io.on('connection', socket => {
     if (!questions.length) return ack({ error: '문제를 1개 이상 넣어 주세요.' });
     const code = newCode(); if (!code) return ack({ error: '방 번호를 만들 수 없어요.' });
     if (TEACHER_PIN && String(d.pin || '') !== TEACHER_PIN) return ack({ error: '선생님 PIN이 맞지 않아요.', pin: true });
-    const base = { time: Math.max(5, Math.min(120, d.settings?.time | 0 || 20)), maxPlayers: Math.max(2, Math.min(M.id === 'race' ? 40 : MAX_PLAYERS, d.settings?.maxPlayers | 0 || 40)), nick: !!d.settings?.nick };
+    const base = { time: Math.max(5, Math.min(120, d.settings?.time | 0 || 20)), maxPlayers: Math.max(2, Math.min(M.id === 'race' ? 40 : MAX_PLAYERS, d.settings?.maxPlayers | 0 || 40)), nick: !!d.settings?.nick, retryWrong: d.settings?.retryWrong !== false && d.settings?.retryWrong !== 'false' };
     room = { code, key: id(18), title: cleanTitle(d.title) || '우리 반', mode: M.id, settings: { ...base, ...M.settings(d.settings || {}) },
       questions, players: new Map(), log: [], feed: [], state: 'lobby', createdAt: Date.now(), teacherOnline: true, m: {} };
     room.api = makeApi(room);
@@ -292,6 +293,7 @@ io.on('connection', socket => {
     room.mode = M.id; room.questions = qs; room.title = cleanTitle(d.title) || room.title;
     room.settings = { ...room.settings, time: Math.max(5, Math.min(120, d.settings?.time | 0 || room.settings.time)), ...M.settings(d.settings || {}) };
     if (d.settings && 'nick' in d.settings) room.settings.nick = !!d.settings.nick;
+    if (d.settings && 'retryWrong' in d.settings) room.settings.retryWrong = d.settings.retryWrong !== false && d.settings.retryWrong !== 'false';
     if (d.settings?.maxPlayers) room.settings.maxPlayers = Math.max(2, Math.min(M.id === 'race' ? 40 : MAX_PLAYERS, d.settings.maxPlayers | 0));
     room.api = makeApi(room);
     room.api.sendRoom(); ack({ room: roomInfo(room, true), questions: room.questions });
@@ -301,7 +303,7 @@ io.on('connection', socket => {
     const online = [...room.players.values()].filter(p => p.online);
     if (!online.length) return ack({ error: '들어온 학생이 없어요.' });
     // 다시 하기: 점수·순서 초기화 (기록은 교사 쪽에서 새 파일로 저장)
-    for (const p of room.players.values()) { p.score = 0; p.order = []; p.pending = null; p.stats = { n: 0, ok: 0 }; p.m = {}; p.seen = Object.create(null); p.streakNow = 0; }
+    for (const p of room.players.values()) { p.score = 0; p.order = []; p.pending = null; p.stats = { n: 0, ok: 0 }; p.m = {}; p.seen = Object.create(null); p.streakNow = 0; p.learning = newLearning(); p.lastQi = -1; p.lastAsk = 0; }
     room.log = []; room.feed = []; room.m = {}; room.lastRanking = null;
     room.state = 'play'; room.startedAt = Date.now();
     room.api.sendRoom(); // 먼저 '시작' 상태를 알려 화면을 준비시키고
@@ -367,7 +369,9 @@ io.on('connection', socket => {
       const v = studentView(r.questions, p.pending.qid, p.device, Math.max(2, Math.round(left))); socket.emit('q', v);
     }
   });
-  const S = fn => (d, ack) => { if (player && room && rooms.has(room.code) && room.players.get(player.pid) === player) fn(d, ack); };
+  const S = fn => (d, ack) => { if (player && room && rooms.has(room.code) && room.players.get(player.pid) === player && player.sid === socket.id) fn(d, ack); else ack({ error: '다시 입장해 주세요.' }); };
+  on('s:learning', S((d, ack) => ack({ summary: learningSummary(player.learning, room.questions.length),
+    cards: room.state === 'end' ? reviewCards(player.learning, room.questions) : [] })));
   on('s:avatar', S((d, ack) => { player.avatar = cleanAvatar(d.avatar); room.api.sendRoom(); ack({ ok: true }); }));
   on('s:ask', S((d, ack) => {
     if (room.state !== 'play' || !MODES[room.mode].selfPaced) return ack({ error: 'wait' });

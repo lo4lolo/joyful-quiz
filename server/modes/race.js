@@ -44,7 +44,7 @@ function rollItem(f) {
 
 function startInfo(room, now = Date.now()) {
   const m = room.m;
-  return { track: m.track, laps: m.laps, gates: m.gates, stamps: m.stamps, items: m.items, boxes: m.boxes,
+  return { track: m.track, laps: m.laps, gates: m.gates, stamps: m.stamps, items: m.items, boxes: m.boxes, driving: m.driving,
     goIn: m.goAt - now, maxIn: m.maxEnd - now, closeIn: m.closeAt ? m.closeAt - now : 0, roster: roster(room) };
 }
 
@@ -75,13 +75,13 @@ const mode = {
     let stamps = int(i.stamps, 0, 6, 2);
     if (!gates && !boxes) stamps = 0; // 문제를 받을 곳이 없으면 도장 조건 없음
     const finishPct = [30, 50, 100].includes(+i.finishPct) ? +i.finishPct : 50;
-    return { track, laps, gates, stamps, finishPct, items, boxes };
+    return { track, laps, gates, stamps, finishPct, items, boxes, driving: i.driving === 'manual' ? 'manual' : 'assist' };
   },
 
   start(room, api) {
     const s = room.settings, now = Date.now();
     const track = s.track >= 0 ? s.track : Math.floor(Math.random() * TRACK_COUNT);
-    room.m = { track, tr: buildTrack(track), laps: s.laps, gates: s.gates, stamps: s.stamps, items: s.items, boxes: s.boxes,
+    room.m = { track, tr: buildTrack(track), laps: s.laps, gates: s.gates, stamps: s.stamps, items: s.items, boxes: s.boxes, driving: s.driving,
       finishPct: s.finishPct, goAt: now + GO_DELAY, maxEnd: now + GO_DELAY + s.laps * LAP_MAX_MS, closeAt: 0,
       bananas: new Map(), bseq: 1, finished: [], nextK: 0, kOf: {}, ticks: 0 };
     const list = [...room.players.values()];

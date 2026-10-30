@@ -16,7 +16,10 @@ function cleanExtra(x) {
   const o = {};
   for (const [k, v] of Object.entries(x).slice(0, 20)) {
     if (!/^[A-Za-z_][A-Za-z0-9_]{0,24}$/.test(k)) continue;
-    if (typeof v === 'number' && Number.isFinite(v)) o[k] = v;
+    if (k === 'learning' && v && typeof v === 'object') {
+      o[k] = Object.fromEntries(['total','seen','secure','review','recovered','firstCorrect','attempts','correct','streak']
+        .filter(key => Number.isFinite(v[key])).map(key => [key, Math.max(0, Math.min(50000, Math.round(v[key])))]));
+    } else if (typeof v === 'number' && Number.isFinite(v)) o[k] = v;
     else if (typeof v === 'boolean' || v === null) o[k] = v;
     else if (typeof v === 'string') o[k] = clip(v, 60);
     else if (v && typeof v === 'object') o[k] = clip(Object.values(v).filter(t => typeof t !== 'object').join(' '), 60);
@@ -76,6 +79,7 @@ export function buildRecord({ title, unit, mode, modeName, settings, questions, 
     if (Number.isInteger(a.seq) && a.seq > 0) o.seq = Math.min(a.seq, 9999);
     if (Number.isInteger(a.streak) && a.streak >= 0) o.streak = Math.min(a.streak, 999);
     if (a.skip) o.skip = true;
+    if (a.timedOut) o.timedOut = true;
     if (['mc', 'ox', 'short'].includes(a.kind)) o.kind = a.kind;
     if (a.dev === 't' || a.dev === 'p') o.dev = a.dev;
     answers.push(o);

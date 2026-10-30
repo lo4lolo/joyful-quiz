@@ -257,6 +257,7 @@ class RaceGame {
     this.gateProgs = this.tr.gates(opts.gates ?? 3);
     this.boxRows = opts.boxes === false ? [] : this.tr.boxes(opts.gates ?? 3);
     this.input = { throttle: 0, steer: 0, drift: false };
+    this.assist = opts.driving === 'assist';
     this.remotes = new Map(); this.players = new Map();
     this.bananas = new Map();
     this.goAt = Infinity; this.started = false; this.time = 0; this.dead = false;
@@ -617,6 +618,17 @@ class RaceGame {
   }
 
   // ===== 물리 =====
+  rescue() {
+    const m = this.me; if (!m || m.finished || m.quiz) return false;
+    const p = this.tr.pointAt(m.total);
+    m.x = p.x; m.z = p.z; m.h = p.h; m.s = 0; m.steer = 0;
+    m.spinT = 0; m.drifting = false; m.charge = 0; m.wwT = 0;
+    this.prog = this.tr.progressAt(m.x, m.z, -1); m.hint = this.prog.i;
+    m.lastProg = this.prog.prog;
+    this.wrongWay = false; this.on.wrongWay?.(false);
+    this.flash('🛟 제자리에서 앞을 보고 다시 출발해요', 'good', 1800);
+    return true;
+  }
   step(dt) {
     const m = this.me, tr = this.tr, inp = this.input;
     const go = this.started;
@@ -624,6 +636,13 @@ class RaceGame {
     // 출발 직전 0.8초에 가속하면 로켓 출발
     if (!go && this.goAt - performance.now() < 800 && this.goAt - performance.now() > 0 && inp.throttle > 0.5) m.startBoost = true;
     const auto = m.quiz || m.finished;
+    if (this.assist && go && !auto) {
+      const ahead = tr.pointAt(this.prog.prog + (10 + Math.abs(m.s) * .22) / tr.length);
+      const want = Math.atan2(ahead.x - m.x, ahead.z - m.z);
+      const guide = clamp(-angDiff(want, m.h) * 2.2, -1, 1);
+      steer = Math.abs(inp.steer) > .12 ? inp.steer : guide;
+      if (inp.throttle >= 0) throttle = 1;
+    }
     if (auto && go) { // 자동 운전: 도로 가운데 쪽으로 천천히
       const ahead = tr.pointAt(this.prog.prog + 9 / tr.length, clamp(this.prog.lat, -3, 3));
       const want = Math.atan2(ahead.x - m.x, ahead.z - m.z);
@@ -636,7 +655,7 @@ class RaceGame {
     // 핸들 부드럽게
     m.steer += (steer - m.steer) * Math.min(1, dt * (Math.abs(steer) > Math.abs(m.steer) ? 9 : 12));
     // 최고 속도
-    let max = MAX;
+    let max = this.assist ? Math.min(MAX, 20) : MAX;
     if (m.offroad && m.starT <= 0) max = OFF_MAX;
     if (m.slowT > 0) max = Math.min(max, 9);
     if (m.starT > 0) max = STAR_MAX;
@@ -671,6 +690,7 @@ class RaceGame {
     m.x += Math.sin(m.h + slip) * m.s * dt; m.z += Math.cos(m.h + slip) * m.s * dt;
     // 다른 카트와 부딪힘 (나만 밀림)
     for (const r of this.remotes.values()) {
+      if (this.opts.ghosts) continue;
       const dx = m.x - r.x, dz = m.z - r.z, d2 = dx * dx + dz * dz;
       if (d2 < (KART_R * 2) ** 2 && d2 > 1e-4) {
         const d = Math.sqrt(d2), push = (KART_R * 2 - d) * (m.starT > 0 ? 0.2 : 0.6);

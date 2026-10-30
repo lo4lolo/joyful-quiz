@@ -21,18 +21,20 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: 실시간 서버 주소 넣기
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: 게임 규칙과 배포 검사
+        run: npm test
+      - name: 서버 주소를 검증하고 앱을 Pages 루트에 준비
         env:
           SERVER_URL: ${{ vars.SERVER_URL }}
-        run: |
-          if [ -n "$SERVER_URL" ]; then
-            printf "window.JQ_CONFIG = { server: '%s' };\n" "${SERVER_URL%/}" > public/config.js
-          fi
-          touch public/.nojekyll
-          cat public/config.js
+        run: node tools/prepare-pages.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: pages-dist
       - id: deploy
         uses: actions/deploy-pages@v4

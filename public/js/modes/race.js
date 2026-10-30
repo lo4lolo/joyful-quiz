@@ -50,6 +50,7 @@ export function mountStudent(el, ctx) {
     <button class="rc-item empty" title="아이템 쓰기">·<small>${touch ? '' : 'Space'}</small></button>
     <div class="rc-help" hidden></div>
     <div class="rc-closing" hidden></div>
+    <div class="rc-tools"><button class="rc-assist" aria-pressed="false">🧭 주행 도움</button><button class="rc-rescue">🛟 바로 세우기</button><button class="rc-controls">⌨️ 조작법</button></div>
   </div>`);
   const $ = s => ui.querySelector(s);
   const itemBtn = $('.rc-item');
@@ -81,10 +82,22 @@ export function mountStudent(el, ctx) {
     keys.add(e.code); applyInput();
   };
   const onKeyUp = e => { keys.delete(e.code); applyInput(); };
-  const onBlur = () => { keys.clear(); applyInput(); };
+  const onBlur = () => { keys.clear(); joy = { x: 0, y: 0, on: false }; driftBtn = false; brakeBtn = false; applyInput(); };
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp); window.addEventListener('blur', onBlur);
   offs.push(() => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('blur', onBlur); });
   itemBtn.addEventListener('pointerdown', e => { e.preventDefault(); sound.unlock(); useItem(); });
+  $('.rc-assist').onclick = () => {
+    if (!game || game.failed) return;
+    game.assist = !game.assist;
+    $('.rc-assist').setAttribute('aria-pressed', String(game.assist));
+    $('.rc-assist').textContent = `🧭 주행 도움 ${game.assist ? '켜짐' : '꺼짐'}`;
+    game.flash(game.assist ? '핸들을 놓으면 길을 따라가요. 직접 움직여도 돼요!' : '직접 운전해요! ↑ 가속 · ← → 핸들', '', 2500);
+  };
+  $('.rc-rescue').onclick = () => game?.rescue?.();
+  $('.rc-controls').onclick = () => {
+    const help = $('.rc-help'); help.hidden = !help.hidden;
+    help.innerHTML = `<b>주행 도움</b>: 핸들을 놓으면 길을 따라 달려요.<br>${touch ? '동그라미 핸들 · 💨 드리프트 · ✋ 멈춤' : '↑ 가속 · ← → 핸들 · ↓ 브레이크 · Shift 드리프트 · Space 아이템'}<br><small>길을 잃으면 🛟 바로 세우기 · ❓ 게이트에서 퀴즈</small>`;
+  };
 
   if (touch) {
     const tc = h(`<div class="rc-touch">
@@ -175,12 +188,16 @@ export function mountStudent(el, ctx) {
     if (!res && kind === 'gate') { gateQueue++; timers.push(setTimeout(nextQueued, 1400)); return; } // 너무 빨리 이어지면 잠깐 뒤에
     nextQueued();
   }
-  function nextQueued() { if (gateQueue > 0 && !busy) { gateQueue--; runQuiz('gate'); } }
+  function nextQueued() {
+    if (gateQueue > 0 && !busy) { gateQueue--; runQuiz('gate'); }
+    else if (!busy && finishPending) { finishPending = false; tryFinish(); }
+  }
 
   // ----- 도착 -----
-  let finishing = false;
+  let finishing = false, finishPending = false;
   async function tryFinish() {
     if (finished || finishing) return;
+    if (busy || gateQueue) { finishPending = true; return; }
     finishing = true;
     const st = game.state();
     let r = await ctx.send('finish', { lap: game.me.lapsDone, rp: st.rp });
@@ -232,7 +249,7 @@ export function mountStudent(el, ctx) {
     if (dead) return;
     const meP = playerList(ctx.room).find(p => p.pid === ctx.me.pid) || ctx.me;
     game = await createRace(el, {
-      track: data.track, laps: data.laps, gates: data.gates, boxes: data.boxes, items: data.items, mode: 'player',
+      track: data.track, laps: data.laps, gates: data.gates, boxes: data.boxes, items: data.items, driving: data.driving, ghosts: !!data.ghosts, mode: 'player',
       me: { k: myK, color: meP.avatar?.color || ctx.me.avatar?.color || '#ff5fa2', face: meP.avatar?.face, name: ctx.me.name },
       players: playersFor().filter(p => p.k !== myK),
       resume: data.me && data.me.x != null ? data.me : (data.me?.rp > 0 ? data.me : null),
@@ -252,6 +269,8 @@ export function mountStudent(el, ctx) {
     if (dead) { game.destroy(); return; }
     if (game.failed) return;
     el.append(ui);
+    $('.rc-assist').setAttribute('aria-pressed', String(game.assist));
+    $('.rc-assist').textContent = `🧭 주행 도움 ${game.assist ? '켜짐' : '꺼짐'}`;
     applyInput();
     goLocal = performance.now() + data.goIn;
     game.setGo(goLocal);
@@ -319,6 +338,7 @@ export function mountStudent(el, ctx) {
     dead = true;
     for (const f of offs) try { f?.(); } catch {}
     for (const t of timers) { clearTimeout(t); clearInterval(t); }
+    el.querySelectorAll('.quiz-layer').forEach(layer => layer.closeQuiz?.());
     game?.destroy?.();
     ui.remove(); el.classList.remove('race-el');
   };

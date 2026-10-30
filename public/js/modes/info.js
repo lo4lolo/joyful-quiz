@@ -15,6 +15,7 @@ export const MODES = [
       { key: 'stamps', label: '결승 조건 (퀴즈 도장)', options: [[0, '없음'], [1, '1개'], [2, '2개'], [3, '3개'], [4, '4개'], [6, '6개']], def: 2 },
       { key: 'finishPct', label: '끝나는 때', options: [[30, '30% 도착'], [50, '50% 도착'], [100, '모두 도착']], def: 50 },
       { key: 'items', label: '아이템', options: [[true, '켜기'], [false, '끄기']], def: true },
+      { key: 'driving', label: '처음 주행 방식', options: [['assist', '🧭 주행 도움 (추천)'], ['manual', '직접 운전']], def: 'assist' },
       TIME,
     ],
   },
@@ -147,5 +148,6 @@ export const MODES = [
     ],
   },
 ];
+for (const m of MODES) if (!['live', 'royale'].includes(m.id)) m.settings.push({ key: 'retryWrong', label: '틀린 문제 다시 만나기', options: [[true, '다른 두 문제 뒤 복습 (추천)'], [false, '순서만 섞기']], def: true });
 export const MODE = Object.fromEntries(MODES.map(m => [m.id, m]));
 export const defaults = id => Object.fromEntries(MODE[id].settings.map(s => [s.key, s.def]));

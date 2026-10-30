@@ -21,7 +21,7 @@ export const fmtSec = s => { s = Math.max(0, Math.round(s)); return `${Math.floo
 export const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 
 export function toast(text, ms = 2200) {
-  let box = $('#toast'); if (!box) { box = h('<div id="toast"></div>'); document.body.append(box); }
+  let box = $('#toast'); if (!box) { box = h('<div id="toast" role="status" aria-live="polite" aria-atomic="false"></div>'); document.body.append(box); }
   const t = h(`<div class="toast">${esc(text)}</div>`); box.append(t);
   setTimeout(() => t.remove(), ms);
 }
@@ -120,7 +120,7 @@ export function soundButton() {
 export function showQuiz(view, opts = {}) {
   return new Promise(resolve => {
     const layer = h(`<div class="quiz-layer ${opts.inline ? 'inline' : ''}"><div class="quiz">
-      <div class="qtop"><span>${esc(opts.label || '❓ 문제')}</span><span class="tleft"></span></div>
+      <div class="qtop"><span>${view.review ? '🌱 다시 도전 · ' : ''}${esc(opts.label || '❓ 문제')}</span><span class="tleft"></span></div>
       ${view.time ? '<div class="bar"><i></i></div>' : ''}
       <div class="qtext">${esc(view.q)}</div><div class="ans"></div></div></div>`);
     const ans = $('.ans', layer);
@@ -129,7 +129,9 @@ export function showQuiz(view, opts = {}) {
       if (done) return; done = true; cancelAnimationFrame(raf);
       $$('.choice', layer).forEach(b => { b.disabled = true; b.classList.toggle('picked', b.dataset.v === given); b.classList.toggle('dim', b.dataset.v !== given); });
       sound.play('pick');
-      const res = await opts.onAnswer?.(given);
+      let res;
+      try { res = await opts.onAnswer?.(given); } catch { res = { error: 'connection' }; }
+      if (!layer.isConnected) return resolve(null);
       if (!res || res.error) { close(); return resolve(res || null); }
       if (res.ok) fx.medium($('.quiz', layer), '정답!', '#14A57A'); else fx.shake($('.quiz', layer));
       if (opts.revealInline) { close(); return resolve(res); }
@@ -137,9 +139,12 @@ export function showQuiz(view, opts = {}) {
       const r = h(`<div class="qres ${res.ok ? 'ok' : 'no'}"><div><div class="big">${res.ok ? '⭕' : '❌'}</div>${res.ok ? '정답!' : '아쉬워요'}
         ${res.ok ? '' : `<small>정답: ${esc(res.correct)}</small>`}${res.explain ? `<small>💡 ${esc(res.explain)}</small>` : ''}${opts.extra ? `<small>${esc(opts.extra(res))}</small>` : ''}</div></div>`);
       $('.quiz', layer).append(r);
-      setTimeout(() => { close(); resolve(res); }, res.ok ? (opts.okDelay ?? 900) : (opts.noDelay ?? (res.explain ? 2600 : 1800)));
+      if (opts.readToContinue && !res.ok) {
+        const next = h('<button class="btn mint" style="margin-top:14px">읽었어요 · 계속하기 →</button>');
+        r.firstElementChild.append(next); next.onclick = () => { close(); resolve(res); }; next.focus();
+      } else setTimeout(() => { close(); resolve(res); }, res.ok ? (opts.okDelay ?? 900) : (opts.noDelay ?? (res.explain ? 2600 : 1800)));
     };
-    function close() { layer.remove(); document.removeEventListener('keydown', onKey); }
+    function close() { cancelAnimationFrame(raf); layer.remove(); document.removeEventListener('keydown', onKey); }
     if (view.choices) {
       const ox = view.kind === 'ox';
       ans.innerHTML = `<div class="choices ${view.choices.length === 2 ? 'two' : ''}">${view.choices.map((c, i) =>

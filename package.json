@@ -1,6 +1,6 @@
 {
   "name": "joyful-quiz",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "private": true,
   "description": "즐거운 퀴즈: 교실용 멀티 단원 정리 퀴즈 (카트 레이스·골든벨·보물 상자·땅따먹기). 학생 기록은 서버에 저장하지 않고 교사 PC로 내려받습니다.",
   "type": "module",
@@ -8,7 +8,10 @@
   "scripts": {
     "start": "node server.js",
     "vendor": "node tools/copy-vendor.mjs",
-    "test": "node --test --test-concurrency=1 --test-timeout=120000 \"tests/*.test.mjs\""
+    "test": "node --test --test-concurrency=1 --test-timeout=120000 \"tests/*.test.mjs\"",
+    "check": "node tools/doctor.mjs",
+    "guide": "node tools/build-guide.mjs",
+    "release": "node tools/build-guide.mjs && powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-release.ps1"
   },
   "engines": {
     "node": ">=18"

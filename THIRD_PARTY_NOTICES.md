@@ -9,3 +9,5 @@
 
 3D 모델과 그림(public/assets/models, public/assets/img)은 이 프로젝트에서 Blender로 직접 만들었습니다 (tools/blender).
 효과음·배경음은 브라우저 WebAudio로 즉석에서 만들며 외부 소리 파일을 쓰지 않습니다.
+# Windows portable runtime (v0.5)
+The Windows release includes Node.js v22.19.0 from the locally installed official Node.js distribution. Its full license, including bundled component notices, is shipped as `runtime/NODE-LICENSE.txt`. Source copy: `docs/vendor-licenses/NODE-LICENSE-v22.19.0.txt`, fetched from https://raw.githubusercontent.com/nodejs/node/v22.19.0/LICENSE. The release builder requires a license matching the included runtime version.

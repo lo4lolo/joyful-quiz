@@ -8,6 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⭐%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/student.css">
+<link rel="stylesheet" href="css/learning.css">
 </head>
 <body class="paper">
 <!-- 1. 게임 코드 -->
@@ -93,6 +94,7 @@
       <div class="podium" id="e-podium"></div>
       <div class="stat-row" id="e-stats"></div>
       <div class="reward" id="e-reward"></div>
+      <div id="e-learning"></div>
       <p class="muted small">선생님이 다시 시작하면 자동으로 이어져요.</p>
     </div>
   </div>
@@ -117,6 +119,7 @@
     <button class="btn lemon lg" id="m-home">처음으로</button></div></div>
 </section>
 <div class="conn" id="conn" hidden>연결이 끊겼어요. 다시 연결하는 중…</div>
+<div class="learning-chip" id="learning-chip" hidden aria-live="polite"></div>
 
 <script src="config.js"></script>
 <script src="vendor/socket.io.min.js"></script>
